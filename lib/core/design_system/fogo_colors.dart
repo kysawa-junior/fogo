@@ -1,0 +1,42 @@
+import 'package:flutter/widgets.dart';
+
+/// Tokens de cor do design system F.O.G.O.
+/// Nenhum widget deve declarar cores arbitrárias — usar sempre estes tokens.
+abstract final class FogoColors {
+  // Fundos e superfícies
+  static const Color bg = Color(0xFF01010A);
+  static const Color surface = Color(0xFF121824);
+
+  // Cards flutuantes (espelham a variável bg-surface do base-design.pen)
+  static const Color surfaceCard = Color(0xFF01010E);
+  static const Color surfaceRaised = Color(0xFF1A2231);
+  static const Color surfaceHover = Color(0xFF202A3C);
+  static const Color border = Color(0xFF243044);
+  static const Color borderStrong = Color(0xFF33425C);
+
+  // Texto
+  static const Color textPrimary = Color(0xFFE9EDF5);
+  static const Color textSecondary = Color(0xFF9AA7BC);
+  static const Color textDisabled = Color(0xFF5D6879);
+
+  // Identidade F.O.G.O.
+  static const Color accent = Color(0xFFFF6A3D);
+  static const Color accentSoft = Color(0x26FF6A3D);
+  static const Color onAccent = Color(0xFF1A0E08);
+
+  // Acento de superfície ativa (variável bg-active-surface do base-design.pen)
+  static const Color activeSurface = Color(0xFF0FC3FF);
+  static const Color onActiveSurface = Color(0xFF0B0B14);
+  static const Color transparent = Color(0x00000000);
+
+  // Estados operacionais (semântica compartilhada)
+  static const Color statusNormal = Color(0xFF3DDC97);
+  static const Color statusAttention = Color(0xFFF5B84C);
+  static const Color statusCritical = Color(0xFFFF5A5F);
+  static const Color statusOffline = Color(0xFF7C879B);
+  static const Color info = Color(0xFF5CA8FF);
+
+  // Navegação flutuante (header e navegador de cidades — base-design.pen)
+  static const Color overlayFaint = Color(0x08FFFFFF);
+  static const Color borderSubtle = Color(0x14FFFFFF);
+}

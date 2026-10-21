@@ -1,0 +1,935 @@
+import 'dart:collection';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+
+import 'package:flutter/widgets.dart';
+
+import 'camera.dart';
+import 'coordinates.dart';
+import 'data.dart';
+import 'overlays.dart';
+import 'road_geometry.dart';
+import 'style.dart';
+
+@immutable
+class FogoMapRenderData {
+  FogoMapRenderData({
+    List<FogoMapRoad> roads = const [],
+    List<FogoMapArea> areas = const [],
+    List<FogoMapRail> rails = const [],
+    List<FogoMapWaterLine> waterLines = const [],
+    List<FogoMapPoi> pois = const [],
+    List<FogoMapLabel> labels = const [],
+    List<FogoMapArea> buildings = const [],
+  }) : roads = List.unmodifiable(roads),
+       areas = List.unmodifiable(areas),
+       rails = List.unmodifiable(rails),
+       waterLines = List.unmodifiable(waterLines),
+       pois = List.unmodifiable(pois),
+       labels = List.unmodifiable(labels),
+       buildings = List.unmodifiable(buildings);
+
+  factory FogoMapRenderData.fromCells(Iterable<FogoMapCellData> cells) {
+    final List<FogoMapRoad> roads = [];
+    final List<FogoMapArea> areas = [];
+    final List<FogoMapRail> rails = [];
+    final List<FogoMapWaterLine> waterLines = [];
+    final List<FogoMapPoi> pois = [];
+    final List<FogoMapLabel> labels = [];
+    final List<FogoMapArea> buildings = [];
+    for (final FogoMapCellData cell in cells) {
+      roads.addAll(cell.roads);
+      areas.addAll(cell.areas);
+      rails.addAll(cell.rails);
+      waterLines.addAll(cell.waterLines);
+      pois.addAll(cell.pois);
+      labels.addAll(cell.labels);
+      buildings.addAll(cell.buildings);
+    }
+    return FogoMapRenderData(
+      roads: FogoRoadGeometryMerger.merge(roads),
+      areas: areas,
+      rails: rails,
+      waterLines: waterLines,
+      pois: pois,
+      labels: labels,
+      buildings: buildings,
+    );
+  }
+
+  final List<FogoMapRoad> roads;
+  final List<FogoMapArea> areas;
+  final List<FogoMapRail> rails;
+  final List<FogoMapWaterLine> waterLines;
+  final List<FogoMapPoi> pois;
+  final List<FogoMapLabel> labels;
+  final List<FogoMapArea> buildings;
+
+  bool get isEmpty =>
+      roads.isEmpty &&
+      areas.isEmpty &&
+      rails.isEmpty &&
+      waterLines.isEmpty &&
+      pois.isEmpty &&
+      labels.isEmpty &&
+      buildings.isEmpty;
+}
+
+class FogoMapPainter extends CustomPainter {
+  FogoMapPainter({
+    required this.camera,
+    required this.data,
+    required this.manifest,
+    required this.style,
+    required this.polylines,
+    required this.surfaceCache,
+    required this.projectionCache,
+  });
+
+  final FogoCameraState camera;
+  final FogoMapRenderData data;
+  final FogoMapManifest manifest;
+  final FogoMapStyle style;
+  final List<FogoMapPolyline> polylines;
+  final FogoRoadSurfaceCache surfaceCache;
+  final FogoProjectionCache projectionCache;
+
+  static final LinkedHashMap<String, ui.Paragraph> _labelCache =
+      LinkedHashMap();
+
+  late FogoCameraTransform _transform;
+  late FogoGeoBounds _visibleBounds;
+
+  static bool isRoadClassVisible(FogoRoadClass roadClass, double zoom) =>
+      switch (roadClass) {
+        FogoRoadClass.motorway || FogoRoadClass.trunk => true,
+        FogoRoadClass.primary => zoom >= 7.5,
+        FogoRoadClass.secondary => zoom >= 9,
+        FogoRoadClass.tertiary ||
+        FogoRoadClass.unclassified ||
+        FogoRoadClass.residential => zoom >= 11.5,
+        FogoRoadClass.other => zoom >= 14,
+        FogoRoadClass.track => zoom >= 13,
+        FogoRoadClass.service => zoom >= 14.5,
+        FogoRoadClass.path => zoom >= 16,
+      };
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    _transform = FogoCameraTransform(camera, size);
+    _visibleBounds = _transform.visibleBounds;
+    projectionCache.clear();
+    canvas.drawColor(style.background, BlendMode.src);
+    canvas.save();
+    try {
+      canvas.clipPath(_coveragePath());
+      _paintAreas(canvas);
+      _paintWaterLines(canvas);
+      _paintRails(canvas);
+      _paintBuildings(canvas);
+      _paintRoads(canvas, size);
+      _paintLabels(canvas, size);
+    } finally {
+      canvas.restore();
+    }
+    _paintPolylines(canvas);
+  }
+
+  ui.Path _coveragePath() {
+    final FogoGeoBounds bounds = manifest.bounds;
+    final ui.Path path = ui.Path()
+      ..moveTo(
+        _p(bounds.south, bounds.west).dx,
+        _p(bounds.south, bounds.west).dy,
+      )
+      ..lineTo(
+        _p(bounds.south, bounds.east).dx,
+        _p(bounds.south, bounds.east).dy,
+      )
+      ..lineTo(
+        _p(bounds.north, bounds.east).dx,
+        _p(bounds.north, bounds.east).dy,
+      )
+      ..lineTo(
+        _p(bounds.north, bounds.west).dx,
+        _p(bounds.north, bounds.west).dy,
+      )
+      ..close();
+    return path;
+  }
+
+  void _paintAreas(Canvas canvas) {
+    if (!style.showAreas) return;
+    final ui.Path path = ui.Path();
+    final Paint fill = Paint()..style = PaintingStyle.fill;
+    final Paint stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4
+      ..color = style.boundary;
+    for (final FogoMapArea area in data.areas) {
+      if (!_visible(area.bbox)) continue;
+      _polygon(path, area.coordinates);
+      if (area.kind == FogoAreaKind.boundary) {
+        canvas.drawPath(path, stroke);
+      } else {
+        fill.color = switch (area.kind) {
+          FogoAreaKind.water => style.water,
+          FogoAreaKind.green => style.green,
+          FogoAreaKind.farmland => style.farmland,
+          FogoAreaKind.boundary => style.boundary,
+        };
+        canvas.drawPath(path, fill);
+      }
+    }
+  }
+
+  void _paintWaterLines(Canvas canvas) {
+    if (!style.showWaterLines) return;
+    final double scale = _lineScale(camera.zoom);
+    for (final FogoMapWaterLine line in data.waterLines) {
+      if (!_visible(line.bbox) ||
+          (line.kind == FogoWaterLineKind.drain && camera.zoom < 15)) {
+        continue;
+      }
+      final double width = switch (line.kind) {
+        FogoWaterLineKind.river => 3.6 * scale,
+        FogoWaterLineKind.canal => 2.4 * scale,
+        FogoWaterLineKind.stream => 1.5 * scale,
+        FogoWaterLineKind.drain => 0.8 * scale,
+      };
+      canvas.drawPath(
+        _linePath(line.coordinates),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(0.5, width)
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..color = style.waterLine,
+      );
+    }
+  }
+
+  void _paintRails(Canvas canvas) {
+    if (!style.showRail) return;
+    final double railScale = _railScale(camera.zoom);
+    for (final FogoMapRail rail in data.rails) {
+      if (!_visible(rail.bbox)) continue;
+      final List<Offset> points = _points(rail.coordinates);
+      if (rail.kind == FogoRailKind.disused) {
+        _drawDashed(
+          canvas,
+          points,
+          Paint()
+            ..color = style.railDisused
+            ..strokeWidth = math.max(1, 1.1 * railScale)
+            ..strokeCap = StrokeCap.square,
+          6,
+          5,
+        );
+      } else if (camera.zoom >= 13) {
+        canvas.drawPath(
+          _path(points),
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..color = style.railBed
+            ..strokeWidth = math.max(1, 2.6 * railScale)
+            ..strokeCap = StrokeCap.square
+            ..strokeJoin = StrokeJoin.round,
+        );
+        _drawDashed(
+          canvas,
+          points,
+          Paint()
+            ..color = style.railTie
+            ..strokeWidth = math.max(1, 1.1 * railScale)
+            ..strokeCap = StrokeCap.square,
+          7,
+          6,
+        );
+      }
+    }
+  }
+
+  void _paintBuildings(Canvas canvas) {
+    if (!style.showBuildings || camera.zoom < 15) return;
+    final Paint fill = Paint()..color = style.building;
+    final Paint stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.6
+      ..color = style.buildingStroke;
+    final Paint sidePaint = Paint()..color = style.buildingStroke;
+    final bool pitched = camera.pitch == 45;
+    for (final FogoMapArea building in data.buildings) {
+      if (!_visible(building.bbox)) continue;
+      final List<Offset> ground = _points(building.coordinates);
+      if (ground.length < 3) continue;
+      final double heightPixels =
+          pitched &&
+              building.heightMeters != null &&
+              building.heightMeters!.isFinite &&
+              building.heightMeters! > 0
+          ? building.heightMeters! / _metersPerPixel * math.sin(math.pi / 4)
+          : 0;
+      if (heightPixels > 0) {
+        for (int i = 0; i < ground.length - 1; i++) {
+          final Offset a = ground[i];
+          final Offset b = ground[i + 1];
+          final Offset roofA = a.translate(0, -heightPixels);
+          final Offset roofB = b.translate(0, -heightPixels);
+          final ui.Path wall = ui.Path()
+            ..moveTo(a.dx, a.dy)
+            ..lineTo(b.dx, b.dy)
+            ..lineTo(roofB.dx, roofB.dy)
+            ..lineTo(roofA.dx, roofA.dy)
+            ..close();
+          canvas.drawPath(wall, sidePaint);
+        }
+      }
+      final ui.Path roof = ui.Path();
+      final Offset first = ground.first.translate(0, -heightPixels);
+      roof.moveTo(first.dx, first.dy);
+      for (int i = 1; i < ground.length; i++) {
+        final Offset point = ground[i].translate(0, -heightPixels);
+        roof.lineTo(point.dx, point.dy);
+      }
+      roof.close();
+      canvas.drawPath(roof, fill);
+      if (camera.zoom >= 16) canvas.drawPath(roof, stroke);
+    }
+  }
+
+  void _paintRoads(Canvas canvas, Size size) {
+    if (!style.showRoads) return;
+    final Map<FogoRoadClass, List<FogoMapRoad>> byClass = {
+      for (final FogoRoadClass roadClass in FogoRoadClass.values) roadClass: [],
+    };
+    final List<FogoMapRoad> bridges = [];
+    final List<FogoMapRoad> tunnels = [];
+    for (final FogoMapRoad road in data.roads) {
+      if (!_visible(road.bbox) ||
+          !style.roadClassVisible(road.roadClass) ||
+          !isRoadClassVisible(road.roadClass, camera.zoom)) {
+        continue;
+      }
+      if (road.tunnel) {
+        tunnels.add(road);
+      } else if (road.bridge) {
+        bridges.add(road);
+      } else {
+        byClass[road.roadClass]!.add(road);
+      }
+    }
+    final List<FogoRoadClass> order = FogoRoadClass.values.reversed.toList();
+    final Paint fill = Paint()..style = PaintingStyle.fill;
+    final double centerX = size.width / 2;
+    final double centerY = size.height / 2;
+
+    canvas.save();
+    canvas.translate(centerX, centerY);
+    for (final FogoRoadClass roadClass in order) {
+      final List<FogoMapRoad> roads = byClass[roadClass]!;
+      if (roads.isEmpty) continue;
+      final ui.Path surfacePath = ui.Path()..fillType = ui.PathFillType.nonZero;
+      final double halfWidth = _roadWidth(roadClass) / 2 + 1.2;
+      for (final FogoMapRoad road in roads) {
+        _appendSurface(
+          surfacePath,
+          surfaceCache.casingSurface(
+            road,
+            halfWidth,
+            _transform,
+            projectionCache,
+          ),
+        );
+      }
+      canvas.drawPath(surfacePath, fill..color = style.roadCasing);
+    }
+    if (bridges.isNotEmpty) {
+      for (final FogoRoadClass roadClass in order) {
+        final ui.Path path = ui.Path()..fillType = ui.PathFillType.nonZero;
+        for (final FogoMapRoad road in bridges) {
+          if (road.roadClass != roadClass) continue;
+          _appendSurface(
+            path,
+            surfaceCache.casingSurface(
+              road,
+              _roadWidth(roadClass) / 2 + 1.6,
+              _transform,
+              projectionCache,
+            ),
+          );
+        }
+        if (path.computeMetrics().isNotEmpty) {
+          canvas.drawPath(path, fill..color = style.roadCasingBridge);
+        }
+      }
+    }
+    for (final FogoRoadClass roadClass in order) {
+      final List<FogoMapRoad> roads = byClass[roadClass]!;
+      if (roads.isEmpty) continue;
+      final ui.Path path = ui.Path()..fillType = ui.PathFillType.nonZero;
+      for (final FogoMapRoad road in roads) {
+        _appendSurface(
+          path,
+          surfaceCache.fillSurface(
+            road,
+            _roadWidth(roadClass) / 2,
+            _transform,
+            projectionCache,
+          ),
+        );
+      }
+      canvas.drawPath(path, fill..color = style.roadColor(roadClass));
+    }
+    for (final FogoRoadClass roadClass in order) {
+      final ui.Path path = ui.Path()..fillType = ui.PathFillType.nonZero;
+      for (final FogoMapRoad road in bridges) {
+        if (road.roadClass != roadClass) continue;
+        _appendSurface(
+          path,
+          surfaceCache.fillSurface(
+            road,
+            _roadWidth(roadClass) / 2,
+            _transform,
+            projectionCache,
+          ),
+        );
+      }
+      if (path.computeMetrics().isNotEmpty) {
+        canvas.drawPath(path, fill..color = style.roadColor(roadClass));
+      }
+    }
+    for (final FogoRoadClass roadClass in order) {
+      final ui.Path path = ui.Path()..fillType = ui.PathFillType.nonZero;
+      for (final FogoMapRoad road in tunnels) {
+        if (road.roadClass != roadClass) continue;
+        _appendSurface(
+          path,
+          surfaceCache.fillSurface(
+            road,
+            _roadWidth(roadClass) / 2,
+            _transform,
+            projectionCache,
+          ),
+        );
+      }
+      if (path.computeMetrics().isNotEmpty) {
+        canvas.drawPath(
+          path,
+          fill..color = style.roadColor(roadClass).withValues(alpha: 0.45),
+        );
+      }
+    }
+    canvas.restore();
+    _paintOneway(canvas, byClass, bridges);
+  }
+
+  void _paintOneway(
+    Canvas canvas,
+    Map<FogoRoadClass, List<FogoMapRoad>> byClass,
+    List<FogoMapRoad> bridges,
+  ) {
+    if (camera.zoom < 15) return;
+    final Paint arrowPaint = Paint()..color = style.onewayArrow;
+    int drawn = 0;
+    for (final FogoMapRoad road in [
+      ...byClass.values.expand((roads) => roads),
+      ...bridges,
+    ]) {
+      if (drawn >= 500) break;
+      if (!road.oneway ||
+          road.roadClass == FogoRoadClass.path ||
+          road.roadClass == FogoRoadClass.track) {
+        continue;
+      }
+      final int count = _drawOnewayArrows(
+        canvas,
+        road.coordinates,
+        arrowPaint,
+        spacing: road.roadClass == FogoRoadClass.service ? 150 : 100,
+        scale: math.max(1, _roadWidth(road.roadClass) * 0.22),
+      );
+      drawn += count;
+    }
+  }
+
+  int _drawOnewayArrows(
+    Canvas canvas,
+    List<double> coordinates,
+    Paint paint, {
+    required double spacing,
+    required double scale,
+  }) {
+    if (coordinates.length < 4) return 0;
+    int drawn = 0;
+    double carried = 0;
+    Offset previous = _p(coordinates[0], coordinates[1]);
+    final ui.Path arrow = ui.Path();
+    for (int i = 1; i < coordinates.length ~/ 2; i++) {
+      final Offset current = _p(coordinates[i * 2], coordinates[i * 2 + 1]);
+      final Offset segment = current - previous;
+      final double length = segment.distance;
+      if (length > 0) {
+        carried += length;
+        if (carried >= spacing) {
+          carried = 0;
+          final Offset midpoint = previous + segment / 2;
+          canvas.save();
+          canvas.translate(midpoint.dx, midpoint.dy);
+          canvas.rotate(math.atan2(segment.dy, segment.dx));
+          final double s = 3.2 * scale;
+          arrow
+            ..reset()
+            ..moveTo(-s, -s * 0.8)
+            ..lineTo(s, 0)
+            ..lineTo(-s, s * 0.8)
+            ..close();
+          canvas.drawPath(arrow, paint);
+          canvas.restore();
+          drawn++;
+        }
+      }
+      previous = current;
+    }
+    return drawn;
+  }
+
+  void _paintLabels(Canvas canvas, Size size) {
+    if (!style.showLabels) return;
+    final FogoLabelLayout layout = FogoLabelLayout(sameLabelDistance: 350);
+    final Rect view = Offset.zero & size;
+    for (final FogoMapLabel label in data.labels) {
+      final double fontSize;
+      final Color color;
+      switch (label.kind) {
+        case FogoLabelKind.city:
+          if (camera.zoom > 14) continue;
+          fontSize = 14;
+          color = style.labelCity;
+        case FogoLabelKind.town:
+          if (camera.zoom < 10 || camera.zoom > 15) continue;
+          fontSize = 11.5;
+          color = style.labelSuburb;
+        case FogoLabelKind.village:
+          if (camera.zoom < 12) continue;
+          fontSize = 10;
+          color = style.labelSuburb;
+        case FogoLabelKind.suburb:
+          if (camera.zoom < 13) continue;
+          fontSize = 10;
+          color = style.labelSuburb;
+      }
+      final Offset position = _p(
+        label.coordinate.latitude,
+        label.coordinate.longitude,
+      );
+      if (!view.inflate(30).contains(position)) continue;
+      final ui.Paragraph paragraph = _label(label.text, fontSize, color);
+      if (!layout.tryPlace(
+        key: 'place:${label.text}',
+        anchor: position,
+        aabb: Rect.fromCenter(
+          center: position,
+          width: paragraph.longestLine,
+          height: paragraph.height,
+        ),
+      )) {
+        continue;
+      }
+      _paintParagraph(canvas, paragraph, position);
+    }
+    if (camera.zoom >= 15.2) _drawRoadNames(canvas, view, layout);
+    if (camera.zoom >= 11 && camera.zoom <= 15.5) {
+      _drawRefShields(canvas, view, layout);
+    }
+    if (style.showLabels && style.showPois && camera.zoom >= 15.5) {
+      final Paint poiPaint = Paint()..color = style.poiDot;
+      for (final FogoMapPoi poi in data.pois) {
+        final Offset position = _p(
+          poi.coordinate.latitude,
+          poi.coordinate.longitude,
+        );
+        if (!view.inflate(10).contains(position)) continue;
+        canvas.drawCircle(position, 2.2, poiPaint);
+        if (camera.zoom < 16.5 || poi.name.isEmpty) continue;
+        final ui.Paragraph paragraph = _label(poi.name, 9, style.labelPoi);
+        if (layout.tryPlace(
+          key: 'poi:${poi.name}',
+          anchor: position,
+          aabb: Rect.fromCenter(
+            center: position.translate(0, -8),
+            width: paragraph.longestLine,
+            height: paragraph.height,
+          ),
+        )) {
+          _paintParagraph(canvas, paragraph, position.translate(0, -16));
+        }
+      }
+    }
+  }
+
+  void _drawRoadNames(Canvas canvas, Rect view, FogoLabelLayout layout) {
+    final List<FogoMapRoad> named = [
+      for (final FogoMapRoad road in data.roads)
+        if (road.name.isNotEmpty &&
+            _visible(road.bbox) &&
+            style.roadClassVisible(road.roadClass) &&
+            isRoadClassVisible(road.roadClass, camera.zoom))
+          road,
+    ];
+    named.sort((a, b) {
+      final int priority = a.roadClass.index.compareTo(b.roadClass.index);
+      return priority != 0 ? priority : b.pointCount.compareTo(a.pointCount);
+    });
+    const double spacing = 420;
+    final double fontSize = camera.zoom >= 16.5 ? 9.5 : 9;
+    int drawn = 0;
+    for (final FogoMapRoad road in named) {
+      if (drawn >= 200) break;
+      final List<Offset> points = _points(road.coordinates);
+      double carry = spacing * 0.35;
+      int labelsOnRoad = 0;
+      for (int i = 0; i < points.length - 1 && labelsOnRoad < 3; i++) {
+        final Offset a = points[i];
+        final Offset b = points[i + 1];
+        final Offset segment = b - a;
+        final double length = segment.distance;
+        if (length < 24) continue;
+        final Offset middle = a + segment / 2;
+        if (!view.inflate(20).contains(middle)) continue;
+        final double accumulated = carry + length;
+        if (accumulated < spacing) {
+          carry = accumulated;
+          continue;
+        }
+        carry = 0;
+        double angle = math.atan2(segment.dy, segment.dx);
+        if (angle > math.pi / 2) {
+          angle -= math.pi;
+        } else if (angle < -math.pi / 2) {
+          angle += math.pi;
+        }
+        final ui.Paragraph paragraph = _label(
+          road.name,
+          fontSize,
+          style.labelRoad,
+        );
+        if (!layout.tryPlace(
+          key: 'road:${road.name}',
+          anchor: middle,
+          aabb: FogoLabelLayout.rotatedAabb(
+            middle,
+            paragraph.longestLine,
+            paragraph.height,
+            angle,
+          ),
+        )) {
+          continue;
+        }
+        canvas.save();
+        canvas.translate(middle.dx, middle.dy);
+        canvas.rotate(angle);
+        canvas.drawParagraph(
+          paragraph,
+          Offset(-paragraph.longestLine / 2, -paragraph.height / 2),
+        );
+        canvas.restore();
+        drawn++;
+        labelsOnRoad++;
+      }
+    }
+  }
+
+  void _drawRefShields(Canvas canvas, Rect view, FogoLabelLayout layout) {
+    final Paint background = Paint()..color = style.shieldBg;
+    final Paint border = Paint()
+      ..color = style.shieldBorder
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    for (final FogoMapRoad road in data.roads) {
+      if (road.roadClass != FogoRoadClass.motorway &&
+          road.roadClass != FogoRoadClass.trunk &&
+          road.roadClass != FogoRoadClass.primary) {
+        continue;
+      }
+      if (!_visible(road.bbox) || !style.roadClassVisible(road.roadClass)) {
+        continue;
+      }
+      if (!isRoadClassVisible(road.roadClass, camera.zoom)) continue;
+      final String? ref = road.ref;
+      if (ref == null || ref.isEmpty || road.pointCount < 2) continue;
+      final int middle = road.pointCount ~/ 2;
+      final Offset position = _p(
+        road.coordinates[middle * 2],
+        road.coordinates[middle * 2 + 1],
+      );
+      if (!view.inflate(40).contains(position)) continue;
+      final ui.Paragraph label = _label(ref, 9, style.shieldText);
+      final double width = label.longestLine + 10;
+      const double height = 16;
+      final Rect rect = Rect.fromCenter(
+        center: position,
+        width: width,
+        height: height,
+      );
+      if (!layout.tryPlace(
+        key: 'ref:$ref',
+        anchor: position,
+        aabb: rect.inflate(3),
+      )) {
+        continue;
+      }
+      final RRect rounded = RRect.fromRectAndRadius(
+        rect,
+        const Radius.circular(4),
+      );
+      canvas.drawRRect(rounded, background);
+      canvas.drawRRect(rounded, border);
+      canvas.drawParagraph(
+        label,
+        position - Offset(label.longestLine / 2, height / 2 - 7),
+      );
+    }
+  }
+
+  void _paintPolylines(Canvas canvas) {
+    for (final FogoMapPolyline polyline in polylines) {
+      final List<Offset> points = [
+        for (final FogoCoordinate coordinate in polyline.points)
+          _transform.project(coordinate),
+      ];
+      if (polyline.borderColor != null && polyline.borderWidth > 0) {
+        _drawPolyline(
+          canvas,
+          points,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = polyline.width + polyline.borderWidth * 2
+            ..strokeCap = StrokeCap.round
+            ..strokeJoin = StrokeJoin.round
+            ..color = polyline.borderColor!,
+          polyline.dashPattern,
+        );
+      }
+      _drawPolyline(
+        canvas,
+        points,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = polyline.width
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..color = polyline.color,
+        polyline.dashPattern,
+      );
+    }
+  }
+
+  void _drawPolyline(
+    Canvas canvas,
+    List<Offset> points,
+    Paint paint,
+    List<double> dash,
+  ) {
+    if (dash.isEmpty) {
+      canvas.drawPath(_path(points), paint);
+    } else {
+      _drawDashed(
+        canvas,
+        points,
+        paint,
+        dash[0],
+        dash.length > 1 ? dash[1] : dash[0],
+      );
+    }
+  }
+
+  void _drawDashed(
+    Canvas canvas,
+    List<Offset> points,
+    Paint paint,
+    double dash,
+    double gap,
+  ) {
+    if (points.length < 2) return;
+    bool drawing = true;
+    double progress = 0;
+    for (int i = 0; i < points.length - 1; i++) {
+      final Offset start = points[i];
+      final Offset end = points[i + 1];
+      final Offset delta = end - start;
+      final double length = delta.distance;
+      if (length == 0) continue;
+      double offset = 0;
+      while (offset < length) {
+        final double run = drawing ? dash : gap;
+        final double step = math.min(length - offset, run - progress);
+        if (drawing && step > 0) {
+          canvas.drawLine(
+            start + delta * (offset / length),
+            start + delta * ((offset + step) / length),
+            paint,
+          );
+        }
+        offset += step;
+        progress += step;
+        if (progress >= run - 1e-9) {
+          progress = 0;
+          drawing = !drawing;
+        }
+      }
+    }
+  }
+
+  ui.Paragraph _label(String text, double fontSize, Color color) {
+    final String key =
+        '$text|$fontSize|${color.toARGB32()}|${style.labelHalo.toARGB32()}';
+    final ui.Paragraph? cached = _labelCache.remove(key);
+    if (cached != null) {
+      _labelCache[key] = cached;
+      return cached;
+    }
+    final ui.ParagraphBuilder builder =
+        ui.ParagraphBuilder(
+            ui.ParagraphStyle(textAlign: TextAlign.left, maxLines: 1),
+          )
+          ..pushStyle(
+            ui.TextStyle(
+              color: color,
+              fontSize: fontSize,
+              fontWeight: FontWeight.w600,
+              shadows: [
+                for (int i = 0; i < 8; i++)
+                  ui.Shadow(
+                    color: style.labelHalo,
+                    blurRadius: 0.5,
+                    offset: Offset(
+                      2 * math.cos(i * math.pi / 4),
+                      2 * math.sin(i * math.pi / 4),
+                    ),
+                  ),
+              ],
+            ),
+          )
+          ..addText(text);
+    final ui.Paragraph paragraph = builder.build()
+      ..layout(const ui.ParagraphConstraints(width: 400));
+    _labelCache[key] = paragraph;
+    if (_labelCache.length > 500) _labelCache.remove(_labelCache.keys.first);
+    return paragraph;
+  }
+
+  void _paintParagraph(Canvas canvas, ui.Paragraph paragraph, Offset position) {
+    canvas.drawParagraph(
+      paragraph,
+      position - Offset(paragraph.longestLine / 2, paragraph.height / 2),
+    );
+  }
+
+  ui.Path _polygon(ui.Path path, List<double> coordinates) {
+    final List<Offset> points = _points(coordinates);
+    path
+      ..reset()
+      ..moveTo(points.first.dx, points.first.dy);
+    for (final Offset point in points.skip(1)) {
+      path.lineTo(point.dx, point.dy);
+    }
+    path.close();
+    return path;
+  }
+
+  ui.Path _linePath(List<double> coordinates) => _path(_points(coordinates));
+
+  ui.Path _path(List<Offset> points) {
+    final ui.Path path = ui.Path();
+    if (points.isEmpty) return path;
+    path.moveTo(points.first.dx, points.first.dy);
+    for (final Offset point in points.skip(1)) {
+      path.lineTo(point.dx, point.dy);
+    }
+    return path;
+  }
+
+  List<Offset> _points(List<double> coordinates) => [
+    for (int i = 0; i < coordinates.length; i += 2)
+      _p(coordinates[i], coordinates[i + 1]),
+  ];
+
+  Offset _p(double lat, double lng) => projectionCache.project(
+    lat,
+    lng,
+    (latitude, longitude) =>
+        _transform.project(FogoCoordinate(latitude, longitude)),
+  );
+
+  bool _visible(List<double> bbox) =>
+      bbox[0] <= _visibleBounds.north &&
+      bbox[2] >= _visibleBounds.south &&
+      bbox[1] <= _visibleBounds.east &&
+      bbox[3] >= _visibleBounds.west;
+
+  void _appendSurface(ui.Path path, FogoRoadSurface surface) {
+    for (final List<Offset> contour in surface.contours) {
+      if (contour.length < 3) continue;
+      path.moveTo(contour.first.dx, contour.first.dy);
+      for (int i = 1; i < contour.length; i++) {
+        path.lineTo(contour[i].dx, contour[i].dy);
+      }
+      path.close();
+    }
+  }
+
+  double _roadWidth(FogoRoadClass roadClass) => switch (roadClass) {
+    FogoRoadClass.motorway => 11,
+    FogoRoadClass.trunk => 10,
+    FogoRoadClass.primary => 9,
+    FogoRoadClass.secondary => 6,
+    FogoRoadClass.tertiary => 5.75,
+    FogoRoadClass.unclassified || FogoRoadClass.residential => 5,
+    FogoRoadClass.other => 4.25,
+    FogoRoadClass.service => 3.5,
+    FogoRoadClass.track => 2.75,
+    FogoRoadClass.path => 2,
+  };
+
+  double get _metersPerPixel {
+    final double latitude = camera.center.latitude * math.pi / 180;
+    return FogoProjection.worldCircumference *
+        math.cos(latitude) /
+        (256 * math.pow(2, camera.zoom).toDouble());
+  }
+
+  static double _lineScale(double zoom) =>
+      zoom <= 12 ? 0.7 : math.min(3.2, 1 + (zoom - 12) * 0.26).toDouble();
+
+  static double _railScale(double zoom) {
+    const List<(double, double)> anchors = [
+      (7, 0.3),
+      (10, 0.7),
+      (12, 0.9),
+      (13, 0.95),
+      (14, 1),
+      (15, 2.5),
+      (16, 5),
+      (17, 10),
+      (18, 13),
+    ];
+    for (int i = 1; i < anchors.length; i++) {
+      if (zoom <= anchors[i].$1) {
+        final (double z0, double w0) = anchors[i - 1];
+        final (double z1, double w1) = anchors[i];
+        final double width = w0 + (w1 - w0) * (zoom - z0) / (z1 - z0);
+        return math.max(1, math.min(14, width * 1.15) * 0.45).toDouble();
+      }
+    }
+    return math.max(1, math.min(14, anchors.last.$2 * 1.15) * 0.45).toDouble();
+  }
+
+  @override
+  bool shouldRepaint(covariant FogoMapPainter oldDelegate) =>
+      oldDelegate.camera != camera ||
+      oldDelegate.data != data ||
+      oldDelegate.manifest != manifest ||
+      oldDelegate.style != style ||
+      oldDelegate.polylines != polylines;
+}

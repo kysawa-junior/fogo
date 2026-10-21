@@ -1,0 +1,392 @@
+{
+  "communities": {
+    "0": [
+      "point",
+      "rect",
+      "size",
+      "windows_runner_flutter_window_flutterwindow_oncreate",
+      "windows_runner_flutter_window_flutterwindow_ondestroy",
+      "windows_runner_resource",
+      "windows_runner_win32_window_cpp_hwnd",
+      "windows_runner_win32_window_cpp_lparam",
+      "windows_runner_win32_window_cpp_lresult",
+      "windows_runner_win32_window_cpp_uint",
+      "windows_runner_win32_window_cpp_wchar_t",
+      "windows_runner_win32_window_cpp_windows_runner_win32_window",
+      "windows_runner_win32_window_cpp_wparam",
+      "windows_runner_win32_window_enablefulldpisupportifavailable",
+      "windows_runner_win32_window_h_hwnd",
+      "windows_runner_win32_window_scale",
+      "windows_runner_win32_window_win32window",
+      "windows_runner_win32_window_win32window_child_content",
+      "windows_runner_win32_window_win32window_create",
+      "windows_runner_win32_window_win32window_destroy",
+      "windows_runner_win32_window_win32window_getclientarea",
+      "windows_runner_win32_window_win32window_gethandle",
+      "windows_runner_win32_window_win32window_getthisfromhandle",
+      "windows_runner_win32_window_win32window_messagehandler",
+      "windows_runner_win32_window_win32window_oncreate",
+      "windows_runner_win32_window_win32window_ondestroy",
+      "windows_runner_win32_window_win32window_quit_on_close",
+      "windows_runner_win32_window_win32window_setchildcontent",
+      "windows_runner_win32_window_win32window_setquitonclose",
+      "windows_runner_win32_window_win32window_show",
+      "windows_runner_win32_window_win32window_updatetheme",
+      "windows_runner_win32_window_win32window_win32window",
+      "windows_runner_win32_window_win32window_window_handle",
+      "windows_runner_win32_window_win32window_wndproc",
+      "windows_runner_win32_window_windowclassregistrar",
+      "windows_runner_win32_window_windowclassregistrar_class_registered",
+      "windows_runner_win32_window_windowclassregistrar_getinstance",
+      "windows_runner_win32_window_windowclassregistrar_getwindowclass",
+      "windows_runner_win32_window_windowclassregistrar_instance",
+      "windows_runner_win32_window_windowclassregistrar_unregisterwindowclass",
+      "windows_runner_win32_window_windowclassregistrar_windowclassregistrar",
+      "wstring"
+    ],
+    "1": [
+      "flpluginregistry",
+      "flview",
+      "gapplication",
+      "gboolean",
+      "gchar",
+      "gobject",
+      "gtkapplication",
+      "linux_flutter_generated_plugin_registrant_cc_linux_flutter_generated_plugin_registrant",
+      "linux_flutter_generated_plugin_registrant_fl_register_plugins",
+      "linux_flutter_generated_plugin_registrant_h_linux_flutter_generated_plugin_registrant",
+      "linux_runner_main",
+      "linux_runner_main_main",
+      "linux_runner_my_application_cc_linux_runner_my_application",
+      "linux_runner_my_application_first_frame_cb",
+      "linux_runner_my_application_h_linux_runner_my_application",
+      "linux_runner_my_application_my_application_activate",
+      "linux_runner_my_application_my_application_class_init",
+      "linux_runner_my_application_my_application_dispose",
+      "linux_runner_my_application_my_application_init",
+      "linux_runner_my_application_my_application_local_command_line",
+      "linux_runner_my_application_my_application_new",
+      "linux_runner_my_application_my_application_shutdown",
+      "linux_runner_my_application_my_application_startup",
+      "linux_runner_my_application_myapplication",
+      "linux_runner_my_application_myapplication_dart_entrypoint_arguments",
+      "linux_runner_my_application_myapplication_parent_instance",
+      "myapplicationclass"
+    ],
+    "2": [
+      "flutter",
+      "flutterscenedelegate",
+      "ios_runner_appdelegate",
+      "ios_runner_generatedpluginregistrant_generatedpluginregistrant",
+      "ios_runner_generatedpluginregistrant_generatedpluginregistrant_registerwithregistry",
+      "ios_runner_generatedpluginregistrant_h_ios_runner_generatedpluginregistrant",
+      "ios_runner_generatedpluginregistrant_m_ios_runner_generatedpluginregistrant",
+      "ios_runner_runner_bridging_header",
+      "ios_runner_scenedelegate",
+      "ios_runner_scenedelegate_scenedelegate",
+      "ios_runnertests_runnertests",
+      "ios_runnertests_runnertests_runnertests",
+      "ios_runnertests_runnertests_runnertests_testexample",
+      "macos_runnertests_runnertests",
+      "macos_runnertests_runnertests_runnertests",
+      "macos_runnertests_runnertests_runnertests_testexample",
+      "nsobject",
+      "uikit",
+      "xctest",
+      "xctestcase"
+    ],
+    "3": [
+      "lib_main",
+      "lib_main_build",
+      "lib_main_counter",
+      "lib_main_createstate",
+      "lib_main_incrementcounter",
+      "lib_main_main",
+      "lib_main_myapp",
+      "lib_main_myhomepage",
+      "lib_main_myhomepagestate",
+      "lib_main_title",
+      "package_flutter_material_dart",
+      "package_flutter_test_flutter_test_dart",
+      "package_fogo_main_dart",
+      "state",
+      "statefulwidget",
+      "statelesswidget",
+      "test_widget_test",
+      "test_widget_test_main"
+    ],
+    "4": [
+      "cocoa",
+      "fluttermacos",
+      "flutterpluginregistry",
+      "flutterviewcontroller",
+      "foundation",
+      "macos_flutter_generatedpluginregistrant",
+      "macos_flutter_generatedpluginregistrant_registergeneratedplugins",
+      "macos_runner_appdelegate",
+      "macos_runner_mainflutterwindow",
+      "macos_runner_mainflutterwindow_mainflutterwindow",
+      "macos_runner_mainflutterwindow_mainflutterwindow_awakefromnib",
+      "nswindow",
+      "unique_ptr",
+      "windows_runner_flutter_window_flutterwindow",
+      "windows_runner_flutter_window_flutterwindow_flutter_controller",
+      "windows_runner_flutter_window_flutterwindow_project",
+      "windows_runner_flutter_window_h_dartproject"
+    ],
+    "5": [
+      "any",
+      "flutterappdelegate",
+      "flutterimplicitenginebridge",
+      "flutterimplicitenginedelegate",
+      "ios_runner_appdelegate_appdelegate",
+      "ios_runner_appdelegate_appdelegate_application",
+      "ios_runner_appdelegate_appdelegate_didinitializeimplicitflutterengine",
+      "ios_runner_appdelegate_swift_bool",
+      "macos_runner_appdelegate_appdelegate",
+      "macos_runner_appdelegate_appdelegate_applicationshouldterminateafterlastwindowclosed",
+      "macos_runner_appdelegate_appdelegate_applicationsupportssecurerestorablestate",
+      "macos_runner_appdelegate_swift_bool",
+      "nsapplication",
+      "uiapplication"
+    ],
+    "6": [
+      "in",
+      "in_opt",
+      "string",
+      "vector",
+      "windows_runner_flutter_window_h_windows_runner_flutter_window",
+      "windows_runner_main",
+      "windows_runner_main_wwinmain",
+      "windows_runner_utils_cpp_wchar_t",
+      "windows_runner_utils_cpp_windows_runner_utils",
+      "windows_runner_utils_createandattachconsole",
+      "windows_runner_utils_getcommandlinearguments",
+      "windows_runner_utils_h_windows_runner_utils",
+      "windows_runner_utils_utf8fromutf16",
+      "windows_runner_win32_window_h_windows_runner_win32_window"
+    ],
+    "7": [
+      "web_manifest",
+      "web_manifest_background_color",
+      "web_manifest_description",
+      "web_manifest_display",
+      "web_manifest_icons",
+      "web_manifest_name",
+      "web_manifest_orientation",
+      "web_manifest_prefer_related_applications",
+      "web_manifest_short_name",
+      "web_manifest_start_url",
+      "web_manifest_theme_color"
+    ],
+    "8": [
+      "windows_runner_flutter_window_cpp_dartproject",
+      "windows_runner_flutter_window_cpp_hwnd",
+      "windows_runner_flutter_window_cpp_lparam",
+      "windows_runner_flutter_window_cpp_lresult",
+      "windows_runner_flutter_window_cpp_uint",
+      "windows_runner_flutter_window_cpp_windows_runner_flutter_window",
+      "windows_runner_flutter_window_cpp_wparam",
+      "windows_runner_flutter_window_flutterwindow_flutterwindow",
+      "windows_runner_flutter_window_flutterwindow_messagehandler"
+    ],
+    "9": [
+      "ios_flutter_ephemeral_flutter_lldb_helper",
+      "ios_flutter_ephemeral_flutter_lldb_helper_handle_new_rx_page",
+      "ios_flutter_ephemeral_flutter_lldb_helper_lldb_init_module",
+      "ios_flutter_ephemeral_flutter_lldb_helper_rationale_8",
+      "sbdebugger",
+      "sbframe"
+    ],
+    "10": [
+      "android_app_src_main_java_io_flutter_plugins_generatedpluginregistrant",
+      "android_app_src_main_java_io_flutter_plugins_generatedpluginregistrant_generatedpluginregistrant",
+      "android_app_src_main_java_io_flutter_plugins_generatedpluginregistrant_generatedpluginregistrant_registerwith",
+      "flutterengine",
+      "keep"
+    ],
+    "11": [
+      "android_gradlew",
+      "android_gradlew__entry",
+      "android_gradlew_die",
+      "android_gradlew_splitjvmopts",
+      "android_gradlew_warn"
+    ],
+    "12": [
+      "pluginregistry",
+      "windows_flutter_generated_plugin_registrant_cc_windows_flutter_generated_plugin_registrant",
+      "windows_flutter_generated_plugin_registrant_h_windows_flutter_generated_plugin_registrant",
+      "windows_flutter_generated_plugin_registrant_registerplugins"
+    ],
+    "13": [
+      "android_app_src_main_kotlin_com_instrum_fogo_fogo_mainactivity",
+      "android_app_src_main_kotlin_com_instrum_fogo_fogo_mainactivity_mainactivity",
+      "flutteractivity"
+    ],
+    "14": [
+      "ios_flutter_ephemeral_packages_fluttergeneratedpluginswiftpackage_package",
+      "macos_flutter_ephemeral_packages_fluttergeneratedpluginswiftpackage_package",
+      "packagedescription"
+    ],
+    "15": [
+      "ios_flutter_flutter_export_environment",
+      "ios_flutter_flutter_export_environment_sh__entry"
+    ],
+    "16": [
+      "macos_flutter_ephemeral_flutter_export_environment",
+      "macos_flutter_ephemeral_flutter_export_environment_sh__entry"
+    ],
+    "17": [
+      "android_app_build_gradle"
+    ],
+    "18": [
+      "android_build_gradle"
+    ],
+    "19": [
+      "android_settings_gradle"
+    ],
+    "20": [
+      "ios_flutter_ephemeral_packages_fluttergeneratedpluginswiftpackage_sources_fluttergeneratedpluginswiftpackage_fluttergeneratedpluginswiftpackage"
+    ],
+    "21": [
+      "macos_flutter_ephemeral_packages_fluttergeneratedpluginswiftpackage_sources_fluttergeneratedpluginswiftpackage_fluttergeneratedpluginswiftpackage"
+    ]
+  },
+  "cohesion": {
+    "0": 0.0975609756097561,
+    "1": 0.09401709401709402,
+    "2": 0.12105263157894737,
+    "3": 0.11764705882352941,
+    "4": 0.1323529411764706,
+    "5": 0.16483516483516483,
+    "6": 0.21978021978021978,
+    "7": 0.18181818181818182,
+    "8": 0.2222222222222222,
+    "9": 0.3333333333333333,
+    "10": 0.6,
+    "11": 0.6,
+    "12": 0.5,
+    "13": 0.6666666666666666,
+    "14": 0.6666666666666666,
+    "15": 1.0,
+    "16": 1.0,
+    "17": 1.0,
+    "18": 1.0,
+    "19": 1.0,
+    "20": 1.0,
+    "21": 1.0
+  },
+  "gods": [
+    {
+      "id": "windows_runner_win32_window_win32window",
+      "label": "Win32Window",
+      "degree": 22
+    },
+    {
+      "id": "windows_runner_win32_window_win32window_messagehandler",
+      "label": "MessageHandler",
+      "degree": 12
+    },
+    {
+      "id": "windows_runner_flutter_window_flutterwindow",
+      "label": "FlutterWindow",
+      "degree": 10
+    },
+    {
+      "id": "windows_runner_win32_window_win32window_create",
+      "label": "Create",
+      "degree": 10
+    },
+    {
+      "id": "windows_runner_win32_window_win32window_wndproc",
+      "label": "WndProc",
+      "degree": 10
+    },
+    {
+      "id": "windows_runner_flutter_window_flutterwindow_messagehandler",
+      "label": "MessageHandler",
+      "degree": 9
+    },
+    {
+      "id": "linux_runner_my_application_myapplication",
+      "label": "_MyApplication",
+      "degree": 7
+    },
+    {
+      "id": "windows_runner_flutter_window_flutterwindow_oncreate",
+      "label": "OnCreate",
+      "degree": 7
+    },
+    {
+      "id": "windows_runner_win32_window_windowclassregistrar",
+      "label": "WindowClassRegistrar",
+      "degree": 7
+    },
+    {
+      "id": "windows_runner_win32_window_win32window_destroy",
+      "label": "Destroy",
+      "degree": 7
+    }
+  ],
+  "surprises": [
+    {
+      "source": "OnCreate",
+      "target": "RegisterPlugins()",
+      "source_files": [
+        "windows/runner/flutter_window.h",
+        "windows/flutter/generated_plugin_registrant.cc"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; bridges separate communities"
+    },
+    {
+      "source": "wWinMain()",
+      "target": "CreateAndAttachConsole()",
+      "source_files": [
+        "windows/runner/main.cpp",
+        "windows/runner/utils.cpp"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; peripheral node `CreateAndAttachConsole()` unexpectedly reaches hub `wWinMain()`"
+    },
+    {
+      "source": "Win32Window::Win32Window()",
+      "target": "Destroy",
+      "source_files": [
+        "windows/runner/win32_window.cpp",
+        "windows/runner/win32_window.h"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; peripheral node `Win32Window::Win32Window()` unexpectedly reaches hub `Destroy`"
+    },
+    {
+      "source": "my_application_activate()",
+      "target": "fl_register_plugins()",
+      "source_files": [
+        "linux/runner/my_application.cc",
+        "linux/flutter/generated_plugin_registrant.cc"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source"
+    },
+    {
+      "source": "main()",
+      "target": "my_application_new()",
+      "source_files": [
+        "linux/runner/main.cc",
+        "linux/runner/my_application.cc"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source"
+    }
+  ],
+  "tokens": {
+    "input": 0,
+    "output": 0
+  }
+}
