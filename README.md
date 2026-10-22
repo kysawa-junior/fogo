@@ -24,12 +24,13 @@ aplicação. Nenhum dado operacional fictício é carregado por padrão.
 
 - **Mapa vetorial offline**: `fogo_map_sdk` lê células OSM locais e desenha
   água, áreas verdes/agricultura, limites, ferrovias, vias, edificações, POIs e
-  rótulos com `CustomPainter`. Fora da cobertura, o fundo fica `#01010A`.
+  rótulos com `CustomPainter`. Fora da cobertura, o fundo fica `#0D0F14`.
 - **Sem rede para o mapa-base**: não há tiles remotos nem fallback de mapa.
   Rotas, marcadores, controles e atribuição OSM continuam acima do mapa; busca
   geográfica e roteamento usam serviços de rede independentes.
-- A paleta noturna é uma aproximação própria do F.O.G.O.; não há alegação de
-  equivalência exata com Mapbox Standard.
+- A paleta noturna v3 é inspirada na hierarquia do Mapbox Standard night
+  (vias claras sobre terreno escuro), mas é própria do F.O.G.O.; não há
+  alegação de equivalência exata.
 - Navegação contínua Marília ↔ Garça (uma só região, sem troca de mapa).
 - Enquadramentos: Região, Marília e Garça; Vera Cruz fica na cobertura regional.
 - Busca geográfica real (Nominatim/OSM).
@@ -37,10 +38,13 @@ aplicação. Nenhum dado operacional fictício é carregado por padrão.
   própria (NN + 2-opt) sobre **matriz de distâncias da rede viária (OSRM)**
   e geometria real desenhada no mapa.
 - Camadas reais: Edificações e Nomes/Rótulos (alternáveis) + filtro de vias
-  por classe (rodovias, primárias… rurais). Pitch alterna entre 0° e 45° e é
-  transitório;
-  extrusão usa somente `height` numérico positivo válido do OSM. `building:levels`
-  nunca é convertido em altura.
+  por classe (rodovias, primárias… rurais). A câmera é 3D perspectiva própria:
+  pitch contínuo 0°–60° (botão 3D alterna 0°/45°) e rotação via giro do
+  trackpad; pitch/bearing são transitórios. Vias, ferrovias e rotas são
+  suavizadas com spline que preserva cruzamentos. Extrusão usa `height`
+  numérico real do OSM quando existe; sem altura real, o motor aplica alturas
+  estimadas determinísticas (só no render, dado intacto) — ver ADR-0005.
+  `building:levels` nunca vira altura.
 
 ## Regenerar dados cartográficos locais
 

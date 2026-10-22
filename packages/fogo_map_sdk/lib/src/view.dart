@@ -417,6 +417,10 @@ class _FogoMapViewState extends State<FogoMapView>
 
   void _handleTrackpadUpdate(PointerPanZoomUpdateEvent event) {
     widget.controller.panByScreenDelta(event.panDelta);
+    if (event.rotation != 0) {
+      // Trackpad twist rotates the 3D camera around the map center.
+      widget.controller.rotateBy(event.rotation * 180 / math.pi);
+    }
     if (event.scale > 0 && _lastTrackpadScale > 0) {
       widget.controller.zoomBy(
         math.log(event.scale / _lastTrackpadScale) / math.ln2,
@@ -572,7 +576,8 @@ class _FogoMapViewState extends State<FogoMapView>
   );
 
   Widget _marker(FogoMapMarker marker, FogoCameraTransform transform) {
-    final Offset point = transform.project(marker.coordinate);
+    final Offset? point = transform.project(marker.coordinate);
+    if (point == null) return const SizedBox.shrink();
     return Positioned(
       key: ValueKey<String>(marker.id),
       left: point.dx - (marker.alignment.x + 1) * marker.width / 2,

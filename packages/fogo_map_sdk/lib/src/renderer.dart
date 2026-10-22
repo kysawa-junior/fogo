@@ -122,12 +122,12 @@ class FogoMapPainter extends CustomPainter {
     canvas.drawColor(style.background, BlendMode.src);
     canvas.save();
     try {
-      canvas.clipPath(_coveragePath());
+      _clipToCoverage(canvas);
       _paintAreas(canvas);
       _paintWaterLines(canvas);
       _paintRails(canvas);
       _paintBuildings(canvas);
-      _paintRoads(canvas, size);
+      _paintRoads(canvas);
       _paintLabels(canvas, size);
     } finally {
       canvas.restore();
@@ -135,32 +135,108 @@ class FogoMapPainter extends CustomPainter {
     _paintPolylines(canvas);
   }
 
-  ui.Path _coveragePath() {
-    final FogoGeoBounds bounds = manifest.bounds;
-    final ui.Path path = ui.Path()
-      ..moveTo(
-        _p(bounds.south, bounds.west).dx,
-        _p(bounds.south, bounds.west).dy,
-      )
-      ..lineTo(
-        _p(bounds.south, bounds.east).dx,
-        _p(bounds.south, bounds.east).dy,
-      )
-      ..lineTo(
-        _p(bounds.north, bounds.east).dx,
-        _p(bounds.north, bounds.east).dy,
-      )
-      ..lineTo(
-        _p(bounds.north, bounds.west).dx,
-        _p(bounds.north, bounds.west).dy,
-      )
-      ..close();
-    return path;
+  // ------------------------------------------------------------------
+  // Ground-space helpers: everything is buffered in ground pixels (east,
+  // north, relative to the camera center) and lifted to the screen through
+  // the 3D transform, with near-plane clipping built in.
+  // ------------------------------------------------------------------
+
+  Offset _ground(double lat, double lng) => projectionCache.project(
+    lat,
+    lng,
+    (la, ln) => _transform.groundOffset(FogoCoordinate(la, ln)),
+  );
+
+  List<Offset> _groundPoints(List<double> coordinates) => [
+    for (int i = 0; i < coordinates.length; i += 2)
+      _ground(coordinates[i], coordinates[i + 1]),
+  ];
+
+  Offset? _screen(double lat, double lng) =>
+      _transform.project(FogoCoordinate(lat, lng));
+
+  void _fillPolygon(
+    Canvas canvas,
+    List<Offset> ground,
+    Paint paint, [
+    double height = 0,
+  ]) {
+    final List<Offset>? screen = _transform.projectGroundPolygon(
+      ground,
+      height,
+    );
+    if (screen == null) return;
+    final ui.Path path = _path(screen)..close();
+    canvas.drawPath(path, paint);
   }
+
+  void _strokeGround(
+    Canvas canvas,
+    List<Offset> ground,
+    Paint paint, {
+    bool smooth = false,
+    double height = 0,
+  }) {
+    final List<Offset> points = smooth ? FogoSmooth.polyline(ground) : ground;
+    if (points.length < 2) return;
+    for (final List<Offset> run in _transform.projectGroundPolyline(
+      points,
+      height,
+    )) {
+      canvas.drawPath(_path(run), paint);
+    }
+  }
+
+  double _groundDepth(List<Offset> ground) {
+    double x = 0;
+    double y = 0;
+    for (final Offset point in ground) {
+      x += point.dx;
+      y += point.dy;
+    }
+    final (double, double, double) rotated = _transform.rotateGround(
+      Offset(x / ground.length, y / ground.length),
+      0,
+    );
+    return _transform.rotatedDepth(rotated.$2, rotated.$3);
+  }
+
+  void _clipToCoverage(Canvas canvas) {
+    final FogoGeoBounds bounds = manifest.bounds;
+    final List<Offset> ring = [
+      _ground(bounds.south, bounds.west),
+      _ground(bounds.south, bounds.east),
+      _ground(bounds.north, bounds.east),
+      _ground(bounds.north, bounds.west),
+      _ground(bounds.south, bounds.west),
+    ];
+    final List<List<Offset>> runs = _transform.projectGroundPolyline(ring);
+    if (runs.isEmpty) return;
+    // Concatenate all visible runs into ONE subpath: at pitch the far side
+    // of the ring is clipped away and close() must bridge the near side in
+    // a single polygon, not leave degenerate per-run subpaths.
+    final ui.Path path = ui.Path();
+    bool started = false;
+    for (final List<Offset> run in runs) {
+      for (final Offset point in run) {
+        if (!started) {
+          path.moveTo(point.dx, point.dy);
+          started = true;
+        } else {
+          path.lineTo(point.dx, point.dy);
+        }
+      }
+    }
+    path.close();
+    canvas.clipPath(path);
+  }
+
+  // ------------------------------------------------------------------
+  // Layers
+  // ------------------------------------------------------------------
 
   void _paintAreas(Canvas canvas) {
     if (!style.showAreas) return;
-    final ui.Path path = ui.Path();
     final Paint fill = Paint()..style = PaintingStyle.fill;
     final Paint stroke = Paint()
       ..style = PaintingStyle.stroke
@@ -168,9 +244,10 @@ class FogoMapPainter extends CustomPainter {
       ..color = style.boundary;
     for (final FogoMapArea area in data.areas) {
       if (!_visible(area.bbox)) continue;
-      _polygon(path, area.coordinates);
+      final List<Offset> ground = _groundPoints(area.coordinates);
+      if (ground.length < 3) continue;
       if (area.kind == FogoAreaKind.boundary) {
-        canvas.drawPath(path, stroke);
+        _strokeGround(canvas, [...ground, ground.first], stroke);
       } else {
         fill.color = switch (area.kind) {
           FogoAreaKind.water => style.water,
@@ -178,7 +255,7 @@ class FogoMapPainter extends CustomPainter {
           FogoAreaKind.farmland => style.farmland,
           FogoAreaKind.boundary => style.boundary,
         };
-        canvas.drawPath(path, fill);
+        _fillPolygon(canvas, ground, fill);
       }
     }
   }
@@ -197,14 +274,16 @@ class FogoMapPainter extends CustomPainter {
         FogoWaterLineKind.stream => 1.5 * scale,
         FogoWaterLineKind.drain => 0.8 * scale,
       };
-      canvas.drawPath(
-        _linePath(line.coordinates),
+      _strokeGround(
+        canvas,
+        _groundPoints(line.coordinates),
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = math.max(0.5, width)
           ..strokeCap = StrokeCap.round
           ..strokeJoin = StrokeJoin.round
           ..color = style.waterLine,
+        smooth: true,
       );
     }
   }
@@ -214,21 +293,29 @@ class FogoMapPainter extends CustomPainter {
     final double railScale = _railScale(camera.zoom);
     for (final FogoMapRail rail in data.rails) {
       if (!_visible(rail.bbox)) continue;
-      final List<Offset> points = _points(rail.coordinates);
+      final List<Offset> ground = FogoSmooth.polyline(
+        _groundPoints(rail.coordinates),
+      );
+      if (ground.length < 2) continue;
       if (rail.kind == FogoRailKind.disused) {
-        _drawDashed(
-          canvas,
-          points,
-          Paint()
-            ..color = style.railDisused
-            ..strokeWidth = math.max(1, 1.1 * railScale)
-            ..strokeCap = StrokeCap.square,
-          6,
-          5,
-        );
+        for (final List<Offset> run in _transform.projectGroundPolyline(
+          ground,
+        )) {
+          _drawDashed(
+            canvas,
+            run,
+            Paint()
+              ..color = style.railDisused
+              ..strokeWidth = math.max(1, 1.1 * railScale)
+              ..strokeCap = StrokeCap.square,
+            6,
+            5,
+          );
+        }
       } else if (camera.zoom >= 13) {
-        canvas.drawPath(
-          _path(points),
+        _strokeGround(
+          canvas,
+          ground,
           Paint()
             ..style = PaintingStyle.stroke
             ..color = style.railBed
@@ -236,69 +323,153 @@ class FogoMapPainter extends CustomPainter {
             ..strokeCap = StrokeCap.square
             ..strokeJoin = StrokeJoin.round,
         );
-        _drawDashed(
-          canvas,
-          points,
-          Paint()
-            ..color = style.railTie
-            ..strokeWidth = math.max(1, 1.1 * railScale)
-            ..strokeCap = StrokeCap.square,
-          7,
-          6,
-        );
+        for (final List<Offset> run in _transform.projectGroundPolyline(
+          ground,
+        )) {
+          _drawDashed(
+            canvas,
+            run,
+            Paint()
+              ..color = style.railTie
+              ..strokeWidth = math.max(1, 1.1 * railScale)
+              ..strokeCap = StrokeCap.square,
+            7,
+            6,
+          );
+        }
       }
     }
   }
 
   void _paintBuildings(Canvas canvas) {
     if (!style.showBuildings || camera.zoom < 15) return;
-    final Paint fill = Paint()..color = style.building;
+    final bool pitched = camera.pitch > 0.5;
+    final List<({List<Offset> ground, double heightPx, double depth})> items =
+        [];
+    for (final FogoMapArea building in data.buildings) {
+      if (!_visible(building.bbox)) continue;
+      List<Offset> ground = _groundPoints(building.coordinates);
+      if (ground.length < 3) continue;
+      if ((ground.first - ground.last).distance > 0.05) {
+        ground = [...ground, ground.first];
+      }
+      double heightPx = 0;
+      if (pitched) {
+        final double? real = building.heightMeters;
+        if (real != null && real > 0) {
+          heightPx = _transform.heightToPixels(real);
+        } else if (style.estimateBuildingHeights) {
+          heightPx = _estimatedHeightPx(building, ground);
+        }
+      }
+      items.add((
+        ground: ground,
+        heightPx: heightPx,
+        depth: _groundDepth(ground),
+      ));
+    }
+    // Far first: painter's algorithm keeps nearer extrusions on top.
+    items.sort((a, b) => b.depth.compareTo(a.depth));
+    final Paint roof = Paint()..color = style.building;
     final Paint stroke = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.6
       ..color = style.buildingStroke;
-    final Paint sidePaint = Paint()..color = style.buildingStroke;
-    final bool pitched = camera.pitch == 45;
-    for (final FogoMapArea building in data.buildings) {
-      if (!_visible(building.bbox)) continue;
-      final List<Offset> ground = _points(building.coordinates);
-      if (ground.length < 3) continue;
-      final double heightPixels =
-          pitched &&
-              building.heightMeters != null &&
-              building.heightMeters!.isFinite &&
-              building.heightMeters! > 0
-          ? building.heightMeters! / _metersPerPixel * math.sin(math.pi / 4)
-          : 0;
-      if (heightPixels > 0) {
-        for (int i = 0; i < ground.length - 1; i++) {
-          final Offset a = ground[i];
-          final Offset b = ground[i + 1];
-          final Offset roofA = a.translate(0, -heightPixels);
-          final Offset roofB = b.translate(0, -heightPixels);
-          final ui.Path wall = ui.Path()
-            ..moveTo(a.dx, a.dy)
-            ..lineTo(b.dx, b.dy)
-            ..lineTo(roofB.dx, roofB.dy)
-            ..lineTo(roofA.dx, roofA.dy)
-            ..close();
-          canvas.drawPath(wall, sidePaint);
-        }
-      }
-      final ui.Path roof = ui.Path();
-      final Offset first = ground.first.translate(0, -heightPixels);
-      roof.moveTo(first.dx, first.dy);
-      for (int i = 1; i < ground.length; i++) {
-        final Offset point = ground[i].translate(0, -heightPixels);
-        roof.lineTo(point.dx, point.dy);
-      }
-      roof.close();
-      canvas.drawPath(roof, fill);
-      if (camera.zoom >= 16) canvas.drawPath(roof, stroke);
+    for (final item in items) {
+      _drawBuilding(canvas, item.ground, item.heightPx, roof, stroke);
     }
   }
 
-  void _paintRoads(Canvas canvas, Size size) {
+  /// Deterministic display-only height, banded by footprint area with a
+  /// stable jitter. Cell data stays untouched; see ADR-0005.
+  double _estimatedHeightPx(FogoMapArea building, List<Offset> ground) {
+    final double cosLat = math.cos(camera.center.latitude * math.pi / 180);
+    final double s = _transform.scale;
+    double sum = 0;
+    for (int i = 0; i < ground.length - 1; i++) {
+      sum += ground[i].dx * ground[i + 1].dy - ground[i + 1].dx * ground[i].dy;
+    }
+    final double areaM2 = (sum.abs() * 0.5) * cosLat * cosLat / (s * s);
+    final int hash = Object.hashAll(building.coordinates.take(4));
+    final double jitter = ((hash & 0xF) / 15).clamp(0, 1).toDouble();
+    final double base;
+    if (areaM2 < 90) {
+      base = 4.5;
+    } else if (areaM2 < 350) {
+      base = 7.5;
+    } else if (areaM2 < 1500) {
+      base = 12;
+    } else if (areaM2 < 6000) {
+      base = 21;
+    } else {
+      base = 30;
+    }
+    return _transform.heightToPixels(base + jitter * 4);
+  }
+
+  void _drawBuilding(
+    Canvas canvas,
+    List<Offset> ground,
+    double heightPx,
+    Paint roof,
+    Paint stroke,
+  ) {
+    final bool pitched = camera.pitch > 0.5 && heightPx > 0.5;
+    if (pitched) {
+      final Offset light = const Offset(
+        -0.7071067811865476,
+        -0.7071067811865476,
+      );
+      for (int i = 0; i < ground.length - 1; i++) {
+        final Offset a = ground[i];
+        final Offset b = ground[i + 1];
+        final Offset edge = b - a;
+        if (edge.distance < 0.01) continue;
+        final Offset normal = Offset(-edge.dy, edge.dx);
+        final double shade =
+            0.5 +
+            0.5 *
+                ((normal.dx * light.dx + normal.dy * light.dy) /
+                    normal.distance);
+        final Offset? s0 = _transform.projectGround(a, 0);
+        final Offset? s1 = _transform.projectGround(b, 0);
+        final Offset? s2 = _transform.projectGround(b, heightPx);
+        final Offset? s3 = _transform.projectGround(a, heightPx);
+        if (s0 == null || s1 == null || s2 == null || s3 == null) continue;
+        final ui.Path wall = ui.Path()
+          ..moveTo(s0.dx, s0.dy)
+          ..lineTo(s1.dx, s1.dy)
+          ..lineTo(s2.dx, s2.dy)
+          ..lineTo(s3.dx, s3.dy)
+          ..close();
+        canvas.drawPath(
+          wall,
+          Paint()
+            ..color = Color.lerp(
+              style.buildingWallDark,
+              style.buildingWallLit,
+              shade.clamp(0, 1),
+            )!,
+        );
+      }
+      final List<Offset>? top = _transform.projectGroundPolygon(
+        ground,
+        heightPx,
+      );
+      if (top == null) return;
+      final ui.Path roofPath = _path(top)..close();
+      canvas.drawPath(roofPath, roof);
+      if (camera.zoom >= 16) canvas.drawPath(roofPath, stroke);
+      return;
+    }
+    final List<Offset>? top = _transform.projectGroundPolygon(ground, 0);
+    if (top == null) return;
+    final ui.Path roofPath = _path(top)..close();
+    canvas.drawPath(roofPath, roof);
+    if (camera.zoom >= 16) canvas.drawPath(roofPath, stroke);
+  }
+
+  void _paintRoads(Canvas canvas) {
     if (!style.showRoads) return;
     final Map<FogoRoadClass, List<FogoMapRoad>> byClass = {
       for (final FogoRoadClass roadClass in FogoRoadClass.values) roadClass: [],
@@ -321,107 +492,91 @@ class FogoMapPainter extends CustomPainter {
     }
     final List<FogoRoadClass> order = FogoRoadClass.values.reversed.toList();
     final Paint fill = Paint()..style = PaintingStyle.fill;
-    final double centerX = size.width / 2;
-    final double centerY = size.height / 2;
 
-    canvas.save();
-    canvas.translate(centerX, centerY);
     for (final FogoRoadClass roadClass in order) {
       final List<FogoMapRoad> roads = byClass[roadClass]!;
       if (roads.isEmpty) continue;
-      final ui.Path surfacePath = ui.Path()..fillType = ui.PathFillType.nonZero;
-      final double halfWidth = _roadWidth(roadClass) / 2 + 1.2;
       for (final FogoMapRoad road in roads) {
-        _appendSurface(
-          surfacePath,
+        _drawSurface(
+          canvas,
           surfaceCache.casingSurface(
             road,
-            halfWidth,
+            _roadWidth(roadClass) / 2 + 1.2,
             _transform,
             projectionCache,
           ),
+          fill..color = style.roadCasing,
         );
       }
-      canvas.drawPath(surfacePath, fill..color = style.roadCasing);
     }
-    if (bridges.isNotEmpty) {
-      for (final FogoRoadClass roadClass in order) {
-        final ui.Path path = ui.Path()..fillType = ui.PathFillType.nonZero;
-        for (final FogoMapRoad road in bridges) {
-          if (road.roadClass != roadClass) continue;
-          _appendSurface(
-            path,
-            surfaceCache.casingSurface(
-              road,
-              _roadWidth(roadClass) / 2 + 1.6,
-              _transform,
-              projectionCache,
-            ),
-          );
-        }
-        if (path.computeMetrics().isNotEmpty) {
-          canvas.drawPath(path, fill..color = style.roadCasingBridge);
-        }
+    for (final FogoRoadClass roadClass in order) {
+      for (final FogoMapRoad road in bridges) {
+        if (road.roadClass != roadClass) continue;
+        _drawSurface(
+          canvas,
+          surfaceCache.casingSurface(
+            road,
+            _roadWidth(roadClass) / 2 + 1.6,
+            _transform,
+            projectionCache,
+          ),
+          fill..color = style.roadCasingBridge,
+        );
       }
     }
     for (final FogoRoadClass roadClass in order) {
       final List<FogoMapRoad> roads = byClass[roadClass]!;
       if (roads.isEmpty) continue;
-      final ui.Path path = ui.Path()..fillType = ui.PathFillType.nonZero;
       for (final FogoMapRoad road in roads) {
-        _appendSurface(
-          path,
+        _drawSurface(
+          canvas,
           surfaceCache.fillSurface(
             road,
             _roadWidth(roadClass) / 2,
             _transform,
             projectionCache,
           ),
+          fill..color = style.roadColor(roadClass),
         );
       }
-      canvas.drawPath(path, fill..color = style.roadColor(roadClass));
     }
     for (final FogoRoadClass roadClass in order) {
-      final ui.Path path = ui.Path()..fillType = ui.PathFillType.nonZero;
       for (final FogoMapRoad road in bridges) {
         if (road.roadClass != roadClass) continue;
-        _appendSurface(
-          path,
+        _drawSurface(
+          canvas,
           surfaceCache.fillSurface(
             road,
             _roadWidth(roadClass) / 2,
             _transform,
             projectionCache,
           ),
+          fill..color = style.roadColor(roadClass),
         );
-      }
-      if (path.computeMetrics().isNotEmpty) {
-        canvas.drawPath(path, fill..color = style.roadColor(roadClass));
       }
     }
     for (final FogoRoadClass roadClass in order) {
-      final ui.Path path = ui.Path()..fillType = ui.PathFillType.nonZero;
       for (final FogoMapRoad road in tunnels) {
         if (road.roadClass != roadClass) continue;
-        _appendSurface(
-          path,
+        _drawSurface(
+          canvas,
           surfaceCache.fillSurface(
             road,
             _roadWidth(roadClass) / 2,
             _transform,
             projectionCache,
           ),
-        );
-      }
-      if (path.computeMetrics().isNotEmpty) {
-        canvas.drawPath(
-          path,
           fill..color = style.roadColor(roadClass).withValues(alpha: 0.45),
         );
       }
     }
-    canvas.restore();
     _paintOneway(canvas, byClass, bridges);
+  }
+
+  void _drawSurface(Canvas canvas, FogoRoadSurface surface, Paint paint) {
+    for (final List<Offset> contour in surface.contours) {
+      _fillPolygon(canvas, contour, paint);
+    }
   }
 
   void _paintOneway(
@@ -442,14 +597,13 @@ class FogoMapPainter extends CustomPainter {
           road.roadClass == FogoRoadClass.track) {
         continue;
       }
-      final int count = _drawOnewayArrows(
+      drawn += _drawOnewayArrows(
         canvas,
         road.coordinates,
         arrowPaint,
         spacing: road.roadClass == FogoRoadClass.service ? 150 : 100,
         scale: math.max(1, _roadWidth(road.roadClass) * 0.22),
       );
-      drawn += count;
     }
   }
 
@@ -461,35 +615,34 @@ class FogoMapPainter extends CustomPainter {
     required double scale,
   }) {
     if (coordinates.length < 4) return 0;
+    final List<Offset> ground = FogoSmooth.polyline(_groundPoints(coordinates));
+    final List<List<Offset>> runs = _transform.projectGroundPolyline(ground);
     int drawn = 0;
     double carried = 0;
-    Offset previous = _p(coordinates[0], coordinates[1]);
-    final ui.Path arrow = ui.Path();
-    for (int i = 1; i < coordinates.length ~/ 2; i++) {
-      final Offset current = _p(coordinates[i * 2], coordinates[i * 2 + 1]);
-      final Offset segment = current - previous;
-      final double length = segment.distance;
-      if (length > 0) {
+    for (final List<Offset> run in runs) {
+      for (int i = 0; i < run.length - 1; i++) {
+        final Offset a = run[i];
+        final Offset b = run[i + 1];
+        final Offset segment = b - a;
+        final double length = segment.distance;
+        if (length == 0) continue;
         carried += length;
-        if (carried >= spacing) {
-          carried = 0;
-          final Offset midpoint = previous + segment / 2;
-          canvas.save();
-          canvas.translate(midpoint.dx, midpoint.dy);
-          canvas.rotate(math.atan2(segment.dy, segment.dx));
-          final double s = 3.2 * scale;
-          arrow
-            ..reset()
-            ..moveTo(-s, -s * 0.8)
-            ..lineTo(s, 0)
-            ..lineTo(-s, s * 0.8)
-            ..close();
-          canvas.drawPath(arrow, paint);
-          canvas.restore();
-          drawn++;
-        }
+        if (carried < spacing) continue;
+        carried = 0;
+        final Offset middle = a + segment / 2;
+        canvas.save();
+        canvas.translate(middle.dx, middle.dy);
+        canvas.rotate(math.atan2(segment.dy, segment.dx));
+        final double s = 3.2 * scale;
+        final ui.Path arrow = ui.Path()
+          ..moveTo(-s, -s * 0.8)
+          ..lineTo(s, 0)
+          ..lineTo(-s, s * 0.8)
+          ..close();
+        canvas.drawPath(arrow, paint);
+        canvas.restore();
+        drawn++;
       }
-      previous = current;
     }
     return drawn;
   }
@@ -519,11 +672,11 @@ class FogoMapPainter extends CustomPainter {
           fontSize = 10;
           color = style.labelSuburb;
       }
-      final Offset position = _p(
+      final Offset? position = _screen(
         label.coordinate.latitude,
         label.coordinate.longitude,
       );
-      if (!view.inflate(30).contains(position)) continue;
+      if (position == null || !view.inflate(30).contains(position)) continue;
       final ui.Paragraph paragraph = _label(label.text, fontSize, color);
       if (!layout.tryPlace(
         key: 'place:${label.text}',
@@ -545,11 +698,11 @@ class FogoMapPainter extends CustomPainter {
     if (style.showLabels && style.showPois && camera.zoom >= 15.5) {
       final Paint poiPaint = Paint()..color = style.poiDot;
       for (final FogoMapPoi poi in data.pois) {
-        final Offset position = _p(
+        final Offset? position = _screen(
           poi.coordinate.latitude,
           poi.coordinate.longitude,
         );
-        if (!view.inflate(10).contains(position)) continue;
+        if (position == null || !view.inflate(10).contains(position)) continue;
         canvas.drawCircle(position, 2.2, poiPaint);
         if (camera.zoom < 16.5 || poi.name.isEmpty) continue;
         final ui.Paragraph paragraph = _label(poi.name, 9, style.labelPoi);
@@ -586,56 +739,60 @@ class FogoMapPainter extends CustomPainter {
     int drawn = 0;
     for (final FogoMapRoad road in named) {
       if (drawn >= 200) break;
-      final List<Offset> points = _points(road.coordinates);
+      final List<List<Offset>> runs = _transform.projectGroundPolyline(
+        FogoSmooth.polyline(_groundPoints(road.coordinates)),
+      );
       double carry = spacing * 0.35;
       int labelsOnRoad = 0;
-      for (int i = 0; i < points.length - 1 && labelsOnRoad < 3; i++) {
-        final Offset a = points[i];
-        final Offset b = points[i + 1];
-        final Offset segment = b - a;
-        final double length = segment.distance;
-        if (length < 24) continue;
-        final Offset middle = a + segment / 2;
-        if (!view.inflate(20).contains(middle)) continue;
-        final double accumulated = carry + length;
-        if (accumulated < spacing) {
-          carry = accumulated;
-          continue;
+      for (final List<Offset> run in runs) {
+        for (int i = 0; i < run.length - 1 && labelsOnRoad < 3; i++) {
+          final Offset a = run[i];
+          final Offset b = run[i + 1];
+          final Offset segment = b - a;
+          final double length = segment.distance;
+          if (length < 24) continue;
+          final Offset middle = a + segment / 2;
+          if (!view.inflate(20).contains(middle)) continue;
+          final double accumulated = carry + length;
+          if (accumulated < spacing) {
+            carry = accumulated;
+            continue;
+          }
+          carry = 0;
+          double angle = math.atan2(segment.dy, segment.dx);
+          if (angle > math.pi / 2) {
+            angle -= math.pi;
+          } else if (angle < -math.pi / 2) {
+            angle += math.pi;
+          }
+          final ui.Paragraph paragraph = _label(
+            road.name,
+            fontSize,
+            style.labelRoad,
+          );
+          if (!layout.tryPlace(
+            key: 'road:${road.name}',
+            anchor: middle,
+            aabb: FogoLabelLayout.rotatedAabb(
+              middle,
+              paragraph.longestLine,
+              paragraph.height,
+              angle,
+            ),
+          )) {
+            continue;
+          }
+          canvas.save();
+          canvas.translate(middle.dx, middle.dy);
+          canvas.rotate(angle);
+          canvas.drawParagraph(
+            paragraph,
+            Offset(-paragraph.longestLine / 2, -paragraph.height / 2),
+          );
+          canvas.restore();
+          drawn++;
+          labelsOnRoad++;
         }
-        carry = 0;
-        double angle = math.atan2(segment.dy, segment.dx);
-        if (angle > math.pi / 2) {
-          angle -= math.pi;
-        } else if (angle < -math.pi / 2) {
-          angle += math.pi;
-        }
-        final ui.Paragraph paragraph = _label(
-          road.name,
-          fontSize,
-          style.labelRoad,
-        );
-        if (!layout.tryPlace(
-          key: 'road:${road.name}',
-          anchor: middle,
-          aabb: FogoLabelLayout.rotatedAabb(
-            middle,
-            paragraph.longestLine,
-            paragraph.height,
-            angle,
-          ),
-        )) {
-          continue;
-        }
-        canvas.save();
-        canvas.translate(middle.dx, middle.dy);
-        canvas.rotate(angle);
-        canvas.drawParagraph(
-          paragraph,
-          Offset(-paragraph.longestLine / 2, -paragraph.height / 2),
-        );
-        canvas.restore();
-        drawn++;
-        labelsOnRoad++;
       }
     }
   }
@@ -659,11 +816,11 @@ class FogoMapPainter extends CustomPainter {
       final String? ref = road.ref;
       if (ref == null || ref.isEmpty || road.pointCount < 2) continue;
       final int middle = road.pointCount ~/ 2;
-      final Offset position = _p(
+      final Offset? position = _screen(
         road.coordinates[middle * 2],
         road.coordinates[middle * 2 + 1],
       );
-      if (!view.inflate(40).contains(position)) continue;
+      if (position == null || !view.inflate(40).contains(position)) continue;
       final ui.Paragraph label = _label(ref, 9, style.shieldText);
       final double width = label.longestLine + 10;
       const double height = 16;
@@ -694,14 +851,14 @@ class FogoMapPainter extends CustomPainter {
 
   void _paintPolylines(Canvas canvas) {
     for (final FogoMapPolyline polyline in polylines) {
-      final List<Offset> points = [
+      final List<Offset> ground = FogoSmooth.polyline([
         for (final FogoCoordinate coordinate in polyline.points)
-          _transform.project(coordinate),
-      ];
+          _transform.groundOffset(coordinate),
+      ]);
       if (polyline.borderColor != null && polyline.borderWidth > 0) {
-        _drawPolyline(
+        _strokeScreen(
           canvas,
-          points,
+          ground,
           Paint()
             ..style = PaintingStyle.stroke
             ..strokeWidth = polyline.width + polyline.borderWidth * 2
@@ -711,9 +868,9 @@ class FogoMapPainter extends CustomPainter {
           polyline.dashPattern,
         );
       }
-      _drawPolyline(
+      _strokeScreen(
         canvas,
-        points,
+        ground,
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = polyline.width
@@ -725,22 +882,24 @@ class FogoMapPainter extends CustomPainter {
     }
   }
 
-  void _drawPolyline(
+  void _strokeScreen(
     Canvas canvas,
-    List<Offset> points,
+    List<Offset> ground,
     Paint paint,
     List<double> dash,
   ) {
-    if (dash.isEmpty) {
-      canvas.drawPath(_path(points), paint);
-    } else {
-      _drawDashed(
-        canvas,
-        points,
-        paint,
-        dash[0],
-        dash.length > 1 ? dash[1] : dash[0],
-      );
+    for (final List<Offset> run in _transform.projectGroundPolyline(ground)) {
+      if (dash.isEmpty) {
+        canvas.drawPath(_path(run), paint);
+      } else {
+        _drawDashed(
+          canvas,
+          run,
+          paint,
+          dash[0],
+          dash.length > 1 ? dash[1] : dash[0],
+        );
+      }
     }
   }
 
@@ -826,20 +985,6 @@ class FogoMapPainter extends CustomPainter {
     );
   }
 
-  ui.Path _polygon(ui.Path path, List<double> coordinates) {
-    final List<Offset> points = _points(coordinates);
-    path
-      ..reset()
-      ..moveTo(points.first.dx, points.first.dy);
-    for (final Offset point in points.skip(1)) {
-      path.lineTo(point.dx, point.dy);
-    }
-    path.close();
-    return path;
-  }
-
-  ui.Path _linePath(List<double> coordinates) => _path(_points(coordinates));
-
   ui.Path _path(List<Offset> points) {
     final ui.Path path = ui.Path();
     if (points.isEmpty) return path;
@@ -850,34 +995,11 @@ class FogoMapPainter extends CustomPainter {
     return path;
   }
 
-  List<Offset> _points(List<double> coordinates) => [
-    for (int i = 0; i < coordinates.length; i += 2)
-      _p(coordinates[i], coordinates[i + 1]),
-  ];
-
-  Offset _p(double lat, double lng) => projectionCache.project(
-    lat,
-    lng,
-    (latitude, longitude) =>
-        _transform.project(FogoCoordinate(latitude, longitude)),
-  );
-
   bool _visible(List<double> bbox) =>
       bbox[0] <= _visibleBounds.north &&
       bbox[2] >= _visibleBounds.south &&
       bbox[1] <= _visibleBounds.east &&
       bbox[3] >= _visibleBounds.west;
-
-  void _appendSurface(ui.Path path, FogoRoadSurface surface) {
-    for (final List<Offset> contour in surface.contours) {
-      if (contour.length < 3) continue;
-      path.moveTo(contour.first.dx, contour.first.dy);
-      for (int i = 1; i < contour.length; i++) {
-        path.lineTo(contour[i].dx, contour[i].dy);
-      }
-      path.close();
-    }
-  }
 
   double _roadWidth(FogoRoadClass roadClass) => switch (roadClass) {
     FogoRoadClass.motorway => 11,
@@ -891,13 +1013,6 @@ class FogoMapPainter extends CustomPainter {
     FogoRoadClass.track => 2.75,
     FogoRoadClass.path => 2,
   };
-
-  double get _metersPerPixel {
-    final double latitude = camera.center.latitude * math.pi / 180;
-    return FogoProjection.worldCircumference *
-        math.cos(latitude) /
-        (256 * math.pow(2, camera.zoom).toDouble());
-  }
 
   static double _lineScale(double zoom) =>
       zoom <= 12 ? 0.7 : math.min(3.2, 1 + (zoom - 12) * 0.26).toDouble();

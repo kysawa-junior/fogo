@@ -275,7 +275,7 @@ class _Endpoint {
   final bool atStart;
 }
 
-/// Shared projected coordinates within one paint pass.
+/// Shared ground-plane coordinates within one paint pass.
 class FogoProjectionCache {
   final Map<(double, double), Offset> _points = {};
 
@@ -296,8 +296,8 @@ class FogoRoadSurface {
   final List<List<Offset>> contours;
 }
 
-/// Pixel-space buffered road geometry preserves widths at all zooms and both
-/// supported pitches while retaining casing, rounded joins and roundabouts.
+/// Pixel-space buffered road geometry preserves widths at all zooms and
+/// camera angles while retaining casing, rounded joins and roundabouts.
 abstract final class FogoRoadSurfaceBuilder {
   static const double _epsilon = 0.01;
   static const double _miterLimit = 2;
@@ -550,24 +550,26 @@ class FogoRoadSurfaceCache {
     if (old != null &&
         old.center == transform.camera.center &&
         old.zoom == transform.camera.zoom &&
-        old.pitch == transform.camera.pitch &&
         old.halfWidth == halfWidth) {
       return old.surface;
     }
+    // Ground space is pitch/bearing independent: tilting or rotating the
+    // camera reuses buffered surfaces, and the spline pass reads dense OSM
+    // polylines as flowing curves with junction endpoints intact.
+    final List<Offset> ground = [
+      for (int i = 0; i < road.coordinates.length; i += 2)
+        projectionCache.project(
+          road.coordinates[i],
+          road.coordinates[i + 1],
+          (lat, lng) => transform.groundOffset(FogoCoordinate(lat, lng)),
+        ),
+    ];
     final FogoRoadSurface surface =
-        FogoRoadSurfaceBuilder.build([
-          for (int i = 0; i < road.coordinates.length; i += 2)
-            projectionCache.project(
-              road.coordinates[i],
-              road.coordinates[i + 1],
-              (lat, lng) => transform.projectRelative(FogoCoordinate(lat, lng)),
-            ),
-        ], halfWidth) ??
+        FogoRoadSurfaceBuilder.build(FogoSmooth.polyline(ground), halfWidth) ??
         FogoRoadSurface.empty;
     cache[road] = _CachedSurface(
       transform.camera.center,
       transform.camera.zoom,
-      transform.camera.pitch,
       halfWidth,
       surface,
     );
@@ -576,16 +578,9 @@ class FogoRoadSurfaceCache {
 }
 
 class _CachedSurface {
-  const _CachedSurface(
-    this.center,
-    this.zoom,
-    this.pitch,
-    this.halfWidth,
-    this.surface,
-  );
+  const _CachedSurface(this.center, this.zoom, this.halfWidth, this.surface);
   final FogoCoordinate center;
   final double zoom;
-  final double pitch;
   final double halfWidth;
   final FogoRoadSurface surface;
 }
@@ -623,6 +618,87 @@ class FogoLabelLayout {
       center: center,
       width: width * cosAngle + height * sinAngle,
       height: width * sinAngle + height * cosAngle,
+    );
+  }
+}
+
+/// Endpoint-preserving curve smoothing for road-class geometry.
+///
+/// Dense OSM polylines read as flowing ribbons after a Catmull-Rom
+/// resample, while turns sharper than [_cornerDegrees] stay crisp. Junction
+/// nodes are exact shared endpoints and are never moved, so connected ways
+/// stay connected.
+abstract final class FogoSmooth {
+  static const double _cornerDegrees = 32;
+  static const double _stepPx = 8;
+
+  static List<Offset> polyline(List<Offset> points) {
+    if (points.length < 3) return points;
+    final List<Offset> clean = <Offset>[points.first];
+    for (final Offset point in points.skip(1)) {
+      if ((clean.last - point).distance > 0.05) clean.add(point);
+    }
+    if (clean.length < 3) return clean;
+    final double corner = _cornerDegrees * math.pi / 180;
+    final List<List<Offset>> runs = [];
+    int runStart = 0;
+    for (int i = 1; i < clean.length - 1; i++) {
+      if (_turn(clean[i - 1], clean[i], clean[i + 1]) > corner) {
+        runs.add(_spline(clean, runStart, i));
+        runStart = i;
+      }
+    }
+    runs.add(_spline(clean, runStart, clean.length - 1));
+    final List<Offset> out = <Offset>[];
+    for (final List<Offset> run in runs) {
+      for (final Offset point in run) {
+        if (out.isEmpty || (out.last - point).distance > 0.05) out.add(point);
+      }
+    }
+    return out;
+  }
+
+  /// Exterior angle between the segments at [mid], in radians.
+  static double _turn(Offset a, Offset mid, Offset b) {
+    final Offset u = mid - a;
+    final Offset v = b - mid;
+    final double lengths = u.distance * v.distance;
+    if (lengths == 0) return 0;
+    return math.acos(((u.dx * v.dx + u.dy * v.dy) / lengths).clamp(-1, 1));
+  }
+
+  /// Catmull-Rom resample of clean[from..to]; both ends are exact.
+  static List<Offset> _spline(List<Offset> clean, int from, int to) {
+    if (to - from < 2) return clean.sublist(from, to + 1);
+    final List<Offset> out = <Offset>[];
+    for (int i = from; i < to; i++) {
+      final Offset p0 = i == from ? clean[from] : clean[i - 1];
+      final Offset p1 = clean[i];
+      final Offset p2 = clean[i + 1];
+      final Offset p3 = i + 2 > to ? clean[to] : clean[i + 2];
+      final int steps = math.max(1, ((p2 - p1).distance / _stepPx).ceil());
+      for (int s = 0; s < steps; s++) {
+        out.add(_rom(p0, p1, p2, p3, s / steps));
+      }
+    }
+    out.add(clean[to]);
+    return out;
+  }
+
+  static Offset _rom(Offset p0, Offset p1, Offset p2, Offset p3, double t) {
+    final double t2 = t * t;
+    final double t3 = t2 * t;
+    return Offset(
+      0.5 *
+          ((2 * p1.dx) +
+              (-p0.dx + p2.dx) * t +
+              (2 * p0.dx - 5 * p1.dx + 4 * p2.dx - p3.dx) * t2 +
+              (-p0.dx + 3 * p1.dx - 3 * p2.dx + p3.dx) * t3),
+      0.5 *
+          ((2 * p1.dy) +
+              (-p0.dy + p2.dy) * t +
+              (2 * p0.dy - 5 * p1.dy + 4 * p2.dy - p3.dy) * t2 +
+              (-p0.dy + 3 * p1.dy - 3 * p2.dy + p3.dy) * t3),
     );
   }
 }

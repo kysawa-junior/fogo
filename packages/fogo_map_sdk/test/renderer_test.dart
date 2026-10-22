@@ -220,7 +220,7 @@ void main() {
         );
 
         Color at(FogoCoordinate coordinate) {
-          final Offset point = transform.project(coordinate);
+          final Offset point = transform.project(coordinate)!;
           return _pixel(pixels, 256, point.dx.round(), point.dy.round());
         }
 
@@ -464,11 +464,18 @@ void main() {
         ],
         size: size,
       );
-      final Offset pitched = FogoCameraTransform(camera, size).project(sample);
-      final Offset topDown = FogoCameraTransform(
+      final Offset? pitchedPoint = FogoCameraTransform(
+        camera,
+        size,
+      ).project(sample);
+      final Offset? topDownPoint = FogoCameraTransform(
         camera.copyWith(pitch: 0),
         size,
       ).project(sample);
+      expect(pitchedPoint, isNotNull);
+      expect(topDownPoint, isNotNull);
+      final Offset pitched = pitchedPoint!;
+      final Offset topDown = topDownPoint!;
 
       expect(
         _pixel(pixels, 256, pitched.dx.round(), pitched.dy.round()),
@@ -489,7 +496,7 @@ void main() {
         );
         final FogoRoadSurface surface = FogoRoadSurfaceBuilder.build([
           for (int i = 0; i < road.coordinates.length; i += 2)
-            transform.projectRelative(
+            transform.groundOffset(
               FogoCoordinate(road.coordinates[i], road.coordinates[i + 1]),
             ),
         ], 5)!;
@@ -504,7 +511,7 @@ void main() {
 
   group('buildings, labels, and POIs', () {
     test(
-      'only explicit positive height changes 45-degree building render',
+      'estimate flags control 3D extrusion of explicit and estimated heights',
       () async {
         final FogoMapManifest manifest = testManifest(
           bounds: const FogoGeoBounds(west: -1, south: -1, east: 1, north: 1),
@@ -523,30 +530,66 @@ void main() {
           ],
           bbox: [-0.0003, -0.0003, 0.0003, 0.0003],
         );
+        final FogoMapArea elevated = FogoMapArea(
+          kind: flat.kind,
+          coordinates: flat.coordinates,
+          bbox: flat.bbox,
+          heightMeters: 20,
+        );
+        final FogoMapStyle realOnly = FogoMapStyle(
+          background: _quietStyle.background,
+          building: _quietStyle.building,
+          showAreas: false,
+          showWaterLines: false,
+          showRail: false,
+          showRoads: false,
+          showBuildings: true,
+          showLabels: false,
+          showPois: false,
+          showAttribution: false,
+          estimateBuildingHeights: false,
+        );
+
+        // Real-heights-only: a tagged building extrudes, a flat one does not.
         final Uint8List flatPixels = await _render(
+          camera: _camera.copyWith(pitch: 45),
+          manifest: manifest,
+          data: FogoMapRenderData(buildings: [flat]),
+          style: realOnly,
+        );
+        final Uint8List elevatedPixels = await _render(
+          camera: _camera.copyWith(pitch: 45),
+          manifest: manifest,
+          data: FogoMapRenderData(buildings: [elevated]),
+          style: realOnly,
+        );
+        expect(
+          _differingPixels(elevatedPixels, flatPixels, 256),
+          greaterThan(0),
+        );
+
+        // Default style estimates heights deterministically, so untagged
+        // buildings also extrude at pitch, and repeated renders match.
+        final Uint8List estimatedPixels = await _render(
           camera: _camera.copyWith(pitch: 45),
           manifest: manifest,
           data: FogoMapRenderData(buildings: [flat]),
           style: _quietStyle,
         );
-        final Uint8List elevatedPixels = await _render(
+        expect(
+          _differingPixels(estimatedPixels, flatPixels, 256),
+          greaterThan(0),
+        );
+        final Uint8List againPixels = await _render(
           camera: _camera.copyWith(pitch: 45),
           manifest: manifest,
-          data: FogoMapRenderData(
-            buildings: [
-              FogoMapArea(
-                kind: flat.kind,
-                coordinates: flat.coordinates,
-                bbox: flat.bbox,
-                heightMeters: 20,
-              ),
-            ],
-          ),
+          data: FogoMapRenderData(buildings: [flat]),
           style: _quietStyle,
         );
         expect(
-          _differingPixels(flatPixels, elevatedPixels, 256),
-          greaterThan(0),
+          _differingPixels(estimatedPixels, againPixels, 256),
+          0,
+          reason: 'estimated heights must be deterministic',
         );
 
         final Uint8List hiddenPixels = await _render(

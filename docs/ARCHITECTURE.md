@@ -72,12 +72,13 @@ motor genérico MVT nem uma integração Mapbox.
   O app mantém rotas/busca/estado operacional, controles de região, persistência
   de centro e zoom e fornece overlays de rota/marcadores. O SDK publica estado
   de câmera/eventos imutáveis e fornece transformação compartilhada para os
-  overlays. Pitch 0°/45° é transitório e não é persistido.
+  overlays. Pitch contínuo 0°–60° e bearing são transitórios e não são
+  persistidos.
 - **Fonte e cobertura**: o bundle local contém 58 células OSM e
   `assets/map/manifest.json`; cobertura limitada a Marília-SP, Vera Cruz-SP,
   Garça-SP e corredor. O manifesto define bounds geográficos e o clipping exato.
   Áreas/água/limites, ferrovias, vias, edifícios e POIs/rótulos são desenhados
-  a partir das células; conteúdo vazio/fora da cobertura usa fundo `#01010A`.
+  a partir das células; conteúdo vazio/fora da cobertura usa fundo `#0D0F14`.
 - **Carregamento e cache**: carrega L0 visível e células L1 de edifícios a partir
   de zoom 15.5, com prefetch de 40% do viewport; poda estado fora dessa janela
   e limita LRU a 64 células L0 / 24 L1. A saída gzip por célula tem limite de
@@ -92,10 +93,20 @@ motor genérico MVT nem uma integração Mapbox.
 - **Rede**: SDK e mapa-base não fazem requests de rede. Busca Nominatim e
   roteamento OSRM são integrações separadas do app e continuam dependentes de
   rede.
-- **Estilo e altura**: paleta noturna é aproximação visual própria do F.O.G.O.;
-  não há alegação de equivalência exata com Mapbox. A 45°, somente `height`
-  numérico finito e positivo pode extrudar edifícios; nenhum valor é inferido de
-  `building:levels`. Gramática, unidades e contadores estão em
+- **Câmera 3D e curvas**: projeção pinhole perspectiva própria (ADR-0005),
+  com clipping de near-plane para geometria que cruza o horizonte. Vias,
+  ferrovias, hidrografia linear e rotas passam por spline `FogoSmooth`
+  (Catmull-Rom que preserva extremos e cantos vivos) antes do desenho, sem
+  mover nós compartilhados de cruzamentos.
+- **Estilo e altura**: paleta noturna v3 é inspirada na hierarquia visual do
+  Mapbox Standard night (fitas de via claras sobre terreno azul quase
+  preto), mas os tokens são próprios do F.O.G.O.; não há alegação de
+  equivalência exata. A partir de pitch, extrusão usa `height` numérico real
+  quando existe; sem altura real, o motor estima alturas determinísticas
+  (por área da pegada, com jitter estável) apenas no render — células e
+  manifesto ficam intactos e `FogoMapStyle.estimateBuildingHeights = false`
+  restringe a extrusão às alturas reais (ADR-0005). `building:levels` nunca
+  vira altura. Gramática, unidades e contadores estão em
   [`tool/map_data/README.md`](../tool/map_data/README.md).
 - **Portabilidade**: o pacote SDK evita `dart:io`, canais/plugins nativos,
   `flutter_map`, estado do app e rede de mapa. `compute` usa isolate onde

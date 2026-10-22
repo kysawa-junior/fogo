@@ -12,43 +12,47 @@ enum FogoRoadFilterGroup {
   rural,
 }
 
-/// F.O.G.O.-owned low-saturation night palette and existing layer controls.
-/// Colors follow the current F.O.G.O. map palette; they are not Mapbox tokens.
+/// F.O.G.O.-owned night palette v3, tuned toward the Mapbox Standard night
+/// appearance: near-black blue land, dark navy water, and light desaturated
+/// road ribbons that read against the land instead of sinking into it. The
+/// tokens are F.O.G.O.'s own; nothing is copied from Mapbox's style JSON.
 class FogoMapStyle {
   FogoMapStyle({
-    this.background = const Color(0xFF01010A),
-    this.water = const Color(0xFF0A1727),
-    this.green = const Color(0xFF101A19),
-    this.farmland = const Color(0xFF0D130D),
-    this.building = const Color(0xFF191927),
-    this.buildingStroke = const Color(0xFF292938),
-    this.boundary = const Color(0xFF292938),
-    this.roadCasing = const Color(0xFF01010A),
-    this.roadCasingBridge = const Color(0xFF01010A),
-    this.roadMotorway = const Color(0xFF0E0E18),
-    this.roadTrunk = const Color(0xFF0B0B15),
-    this.roadPrimary = const Color(0xFF080812),
-    this.roadSecondary = const Color(0xFF060610),
-    this.roadTertiary = const Color(0xFF04040F),
-    this.roadUnclassified = const Color(0xFF01010E),
-    this.roadResidential = const Color(0xFF01010E),
-    this.roadService = const Color(0xFF01010E),
-    this.roadTrack = const Color(0xFF01010E),
-    this.roadPath = const Color(0xFF01010E),
-    this.railBed = const Color(0xFF20202E),
-    this.railTie = const Color(0xFF343443),
-    this.railDisused = const Color(0xFF181824),
-    this.waterLine = const Color(0xFF0F2036),
-    this.onewayArrow = const Color(0xFF85859A),
-    this.shieldBg = const Color(0xFF191927),
-    this.shieldBorder = const Color(0xFF343443),
-    this.shieldText = const Color(0xFFD5D5E0),
-    this.labelRoad = const Color(0xFFC9C9D8),
-    this.labelCity = const Color(0xFFD5D5E0),
-    this.labelSuburb = const Color(0xFF85859A),
-    this.labelPoi = const Color(0xFF85859A),
-    this.labelHalo = const Color(0xFF01010A),
-    this.poiDot = const Color(0xFF74748A),
+    this.background = const Color(0xFF0D0F14),
+    this.water = const Color(0xFF0B1726),
+    this.green = const Color(0xFF0F1815),
+    this.farmland = const Color(0xFF0D130E),
+    this.building = const Color(0xFF1B1E26),
+    this.buildingStroke = const Color(0xFF2A2E39),
+    this.buildingWallLit = const Color(0xFF232733),
+    this.buildingWallDark = const Color(0xFF14161D),
+    this.boundary = const Color(0xFF262A33),
+    this.roadCasing = const Color(0xFF0D0F14),
+    this.roadCasingBridge = const Color(0xFF0D0F14),
+    this.roadMotorway = const Color(0xFF585F6E),
+    this.roadTrunk = const Color(0xFF505663),
+    this.roadPrimary = const Color(0xFF474D59),
+    this.roadSecondary = const Color(0xFF3D434E),
+    this.roadTertiary = const Color(0xFF353B46),
+    this.roadUnclassified = const Color(0xFF2A2F3A),
+    this.roadResidential = const Color(0xFF2A2F3A),
+    this.roadService = const Color(0xFF22262F),
+    this.roadTrack = const Color(0xFF1C2028),
+    this.roadPath = const Color(0xFF171A21),
+    this.railBed = const Color(0xFF232732),
+    this.railTie = const Color(0xFF3A3F4C),
+    this.railDisused = const Color(0xFF1A1E27),
+    this.waterLine = const Color(0xFF12283F),
+    this.onewayArrow = const Color(0xFF8E94A3),
+    this.shieldBg = const Color(0xFF1B1E26),
+    this.shieldBorder = const Color(0xFF3A3F4C),
+    this.shieldText = const Color(0xFFDDE0E8),
+    this.labelRoad = const Color(0xFFC6CBD6),
+    this.labelCity = const Color(0xFFDDE0E8),
+    this.labelSuburb = const Color(0xFF9096A5),
+    this.labelPoi = const Color(0xFF9096A5),
+    this.labelHalo = const Color(0xFF0D0F14),
+    this.poiDot = const Color(0xFF7C8292),
     this.showAreas = true,
     this.showWaterLines = true,
     this.showRail = true,
@@ -57,6 +61,7 @@ class FogoMapStyle {
     this.showPois = true,
     this.showLabels = true,
     this.showAttribution = true,
+    this.estimateBuildingHeights = true,
     Set<FogoRoadFilterGroup> roadFilter = const {},
   }) : roadFilter = Set.unmodifiable(roadFilter);
 
@@ -68,6 +73,12 @@ class FogoMapStyle {
   final Color farmland;
   final Color building;
   final Color buildingStroke;
+
+  /// Extrusion wall shades for the fixed northwest light; the roof keeps
+  /// [building] and the lit wall reads slightly above it, like Mapbox's
+  /// night extrusions.
+  final Color buildingWallLit;
+  final Color buildingWallDark;
   final Color boundary;
   final Color roadCasing;
   final Color roadCasingBridge;
@@ -103,6 +114,11 @@ class FogoMapStyle {
   final bool showPois;
   final bool showLabels;
   final bool showAttribution;
+
+  /// When true, buildings without an explicit OSM `height` extrude using
+  /// deterministic display-only estimates (ADR-0005). Cell data is never
+  /// modified; set false to extrude only real heights.
+  final bool estimateBuildingHeights;
   final Set<FogoRoadFilterGroup> roadFilter;
 
   bool roadClassVisible(FogoRoadClass roadClass) {

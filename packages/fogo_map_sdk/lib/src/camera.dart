@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart' show EdgeInsets;
 
 import 'coordinates.dart';
-import 'projection.dart';
 import 'selection.dart';
 
 /// Vertical field of view of the 3D camera, in degrees. Keeps the center
@@ -103,11 +102,11 @@ class FogoCameraTransform {
 
   /// Screen pixels per Web Mercator metre at the current zoom.
   double get scale =>
-      256 * math.pow(2, camera.zoom).toDouble() /
+      256 *
+      math.pow(2, camera.zoom).toDouble() /
       FogoProjection.worldCircumference;
 
-  double get _tanHalfFov =>
-      math.tan(kFogoCameraFovDegrees * math.pi / 360);
+  double get _tanHalfFov => math.tan(kFogoCameraFovDegrees * math.pi / 360);
 
   double get _pitchRad => camera.pitch * math.pi / 180;
   double get _bearingRad => camera.bearing * math.pi / 180;
@@ -198,15 +197,14 @@ class FogoCameraTransform {
     double height = 0,
   ]) {
     if (ground.length < 2) return const [];
-    final double near = nearPlane;
+    // Clip slightly above the near plane so the interpolated endpoint still
+    // projects (points exactly at nearPlane are rejected as degenerate).
+    final double near = nearPlane * 1.01;
     final List<List<Offset>> runs = [];
     List<Offset> run = [];
     for (int i = 0; i < ground.length - 1; i++) {
       final (double, double, double) a = rotateGround(ground[i], height);
-      final (double, double, double) b = rotateGround(
-        ground[i + 1],
-        height,
-      );
+      final (double, double, double) b = rotateGround(ground[i + 1], height);
       final double depthA = rotatedDepth(a.$2, a.$3);
       final double depthB = rotatedDepth(b.$2, b.$3);
       if (depthA <= near && depthB <= near) {
@@ -224,11 +222,7 @@ class FogoCameraTransform {
           end = _lerpRotated(a, b, t.clamp(0, 1));
         }
       }
-      final Offset? screenStart = projectRotated(
-        start.$1,
-        start.$2,
-        start.$3,
-      );
+      final Offset? screenStart = projectRotated(start.$1, start.$2, start.$3);
       final Offset? screenEnd = projectRotated(end.$1, end.$2, end.$3);
       if (screenStart == null || screenEnd == null) {
         if (run.isNotEmpty) runs.add(run);
@@ -247,21 +241,33 @@ class FogoCameraTransform {
     return runs;
   }
 
-  /// Projects a closed ground polygon; null when any vertex sits too close
-  /// to (or behind) the camera, which would produce degenerate fills.
+  /// Projects a closed ground polygon, clipped against the near plane with
+  /// Sutherland–Hodgman so large features stay visible in pitched views
+  /// instead of being dropped when one corner falls behind the camera.
+  /// Null only when nothing remains in front of the near plane.
   List<Offset>? projectGroundPolygon(List<Offset> ground, [double height = 0]) {
     if (ground.length < 3) return null;
-    final double margin = nearPlane * 4;
+    final double near = nearPlane * 4;
+    List<(double, double, double)> polygon = [
+      for (final Offset point in ground) rotateGround(point, height),
+    ];
+    final List<(double, double, double)> clipped = [];
+    for (int i = 0; i < polygon.length; i++) {
+      final (double, double, double) a = polygon[i];
+      final (double, double, double) b = polygon[(i + 1) % polygon.length];
+      final double depthA = rotatedDepth(a.$2, a.$3);
+      final double depthB = rotatedDepth(b.$2, b.$3);
+      final bool aIn = depthA >= near;
+      final bool bIn = depthB >= near;
+      if (aIn) clipped.add(a);
+      if (aIn != bIn) {
+        clipped.add(_lerpRotated(a, b, (near - depthA) / (depthB - depthA)));
+      }
+    }
+    if (clipped.length < 3) return null;
     final List<Offset> screen = [];
-    for (final Offset point in ground) {
-      final (double, double, double) rotated = rotateGround(point, height);
-      final double depth = rotatedDepth(rotated.$2, rotated.$3);
-      if (depth <= margin) return null;
-      final Offset? projected = projectRotated(
-        rotated.$1,
-        rotated.$2,
-        rotated.$3,
-      );
+    for (final (double, double, double) point in clipped) {
+      final Offset? projected = projectRotated(point.$1, point.$2, point.$3);
       if (projected == null) return null;
       screen.add(projected);
     }
@@ -287,10 +293,7 @@ class FogoCameraTransform {
     );
     final Offset center = FogoProjection.project(camera.center);
     return FogoProjection.unproject(
-      Offset(
-        center.dx + ground.dx / scale,
-        center.dy + ground.dy / scale,
-      ),
+      Offset(center.dx + ground.dx / scale, center.dy + ground.dy / scale),
     );
   }
 
@@ -328,7 +331,7 @@ class FogoCameraTransform {
       40000000,
     );
     final Offset center = FogoProjection.project(camera.center);
-    final Offset far = FogoProjection.unproject(
+    final FogoCoordinate far = FogoProjection.unproject(
       Offset(
         center.dx + math.sin(b) * capMeters,
         center.dy + math.cos(b) * capMeters,
@@ -407,12 +410,17 @@ class FogoMapController extends ChangeNotifier {
     _setCamera(
       _camera.copyWith(
         center: center,
-        zoom: zoom == null ? null : zoom.clamp(minZoom, maxZoom).toDouble(),
+        zoom: zoom?.clamp(minZoom, maxZoom).toDouble(),
       ),
     );
   }
 
   void setCamera(FogoCameraState state) {
+    // NaN zoom must not silently clamp (double.clamp treats NaN as
+    // greater than every limit), so finiteness is checked explicitly.
+    if (!state.center.isValid || !state.zoom.isFinite) {
+      throw ArgumentError.value(state, 'camera', 'Invalid camera state');
+    }
     _setCamera(
       state.copyWith(zoom: state.zoom.clamp(minZoom, maxZoom).toDouble()),
     );
@@ -421,9 +429,7 @@ class FogoMapController extends ChangeNotifier {
   /// Tilts the camera, clamped to [kFogoMaxPitchDegrees].
   void setPitch(double degrees) {
     if (!degrees.isFinite) return;
-    _setCamera(
-      _camera.copyWith(pitch: degrees.clamp(0, kFogoMaxPitchDegrees)),
-    );
+    _setCamera(_camera.copyWith(pitch: degrees.clamp(0, kFogoMaxPitchDegrees)));
   }
 
   /// Rotates the camera clockwise, in degrees, normalized to [0, 360).
@@ -432,11 +438,15 @@ class FogoMapController extends ChangeNotifier {
     _setCamera(_camera.copyWith(bearing: degrees));
   }
 
-  void rotateBy(double deltaDegrees) => setBearing(_camera.bearing + deltaDegrees);
+  void rotateBy(double deltaDegrees) =>
+      setBearing(_camera.bearing + deltaDegrees);
 
   void panByScreenDelta(Offset pointerDelta) {
-    if (!_hasViewport || !pointerDelta.dx.isFinite || !pointerDelta.dy.isFinite)
+    if (!_hasViewport ||
+        !pointerDelta.dx.isFinite ||
+        !pointerDelta.dy.isFinite) {
       return;
+    }
     // Content follows the pointer: the ground under (center - delta) moves
     // to the center. High pitch can push that ray above the horizon, so the
     // vertical component shrinks until the ray lands.
@@ -475,22 +485,25 @@ class FogoMapController extends ChangeNotifier {
     final FogoCoordinate? anchor = transform.unproject(focalPoint);
     _setCamera(_camera.copyWith(zoom: zoom));
     if (anchor == null) return;
-    for (int i = 0; i < 2; i++) {
+    // Perspective at pitch makes each linear correction partial, so iterate
+    // until the anchor is pinned within a fraction of a pixel.
+    for (int i = 0; i < 6; i++) {
       final Offset? screen = transform.project(anchor);
       if (screen == null) break;
       final Offset error = screen - focalPoint;
       if (error.distance < 0.05) break;
-      panByScreenDelta(error);
+      // Content must move opposite to the anchor drift to re-pin it.
+      panByScreenDelta(-error);
     }
   }
 
   void fitBounds(FogoGeoBounds bounds, {EdgeInsets padding = EdgeInsets.zero}) {
     if (!bounds.isValid || !_hasViewport) return;
-    final double width = math.max(
+    final double paddedWidth = math.max(
       1,
       _viewport.width - padding.left - padding.right,
     );
-    final double height = math.max(
+    final double paddedHeight = math.max(
       1,
       _viewport.height - padding.top - padding.bottom,
     );
@@ -501,20 +514,32 @@ class FogoMapController extends ChangeNotifier {
     final Offset northEast = FogoProjection.project(
       FogoCoordinate(bounds.north, bounds.east),
     );
-    final double scale = math.min(
-      width / (northEast.dx - southWest.dx),
-      height / (northEast.dy - southWest.dy),
+    final double fitScale = math.min(
+      paddedWidth / (northEast.dx - southWest.dx),
+      paddedHeight / (northEast.dy - southWest.dy),
     );
     final double zoom =
-        (math.log(scale * FogoProjection.worldCircumference / 256) / math.ln2)
+        (math.log(fitScale * FogoProjection.worldCircumference / 256) /
+                math.ln2)
             .clamp(minZoom, maxZoom)
             .toDouble();
-    final Offset center = Offset(
+    final double s =
+        256 * math.pow(2, zoom).toDouble() / FogoProjection.worldCircumference;
+    // Shift the camera so the bounds midpoint lands at the center of the
+    // padded rectangle, not the raw viewport center.
+    final double offsetX = (padding.left - padding.right) / 2;
+    final double offsetY = (padding.top - padding.bottom) / 2;
+    final Offset middle = Offset(
       (southWest.dx + northEast.dx) / 2,
       (southWest.dy + northEast.dy) / 2,
     );
     _setCamera(
-      _camera.copyWith(center: FogoProjection.unproject(center), zoom: zoom),
+      _camera.copyWith(
+        center: FogoProjection.unproject(
+          Offset(middle.dx - offsetX / s, middle.dy + offsetY / s),
+        ),
+        zoom: zoom,
+      ),
     );
   }
 
