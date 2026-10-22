@@ -559,3 +559,176 @@ delivery_audit:
     - "R1 production fix itself is correct, surgical, and verified; remaining fixes are one format command, one test-window tightening, two evidence sentences"
   next_action: forward_to_orchestrator
 ```
+
+---
+
+# Delivery Audit — Cycle 4 (revision `ec0e6a5` on top of `9bddfe2`)
+
+- **Delivery under audit:** git `ec0e6a5` (current HEAD)
+- **Auditor:** Delivery Auditor (independent rerun, 2026-10-22)
+- **Audit cycle:** 4 — **user-authorized final cycle** after the cycle-3
+  BLOCKED escalation (user explicitly accepted the exception to the
+  3-cycle rule)
+- **Revision diff `9bddfe2..ec0e6a5`:** 4 files, +324/−31 — this audit
+  report, the evidence file, `renderer.dart` (pure extraction of the
+  estimate definition), `estimate_clip_test.dart` (new golden + honest
+  pixel-test scope). 0 files under `assets/`/`tool/`.
+
+## Status
+
+**APPROVED_WITH_NOTES** — every cycle-3 finding is fixed and independently
+verified, every battery criterion reproduces clean, and — decisive for a
+delivery with this audit history — the new guard claims were **empirically
+re-tested both ways** (regression live → suite red; documented limitation →
+suite green exactly as documented). No falsifiable claim remains.
+
+## Requirements Validation (cycle 4, all independently reproduced)
+
+| # | Criterion | Result | Evidence |
+|---|---|---|---|
+| 1 | **F1: format gate** | ✅ PASS | `dart format --set-exit-if-changed --output=none lib test packages/fogo_map_sdk/lib packages/fogo_map_sdk/test` → `Formatted 97 files (0 changed)`, **exit 0** — in the working tree **and** in a fresh `git clone` checked out at `ec0e6a5` (i.e. the committed state, not working-tree drift) |
+| 2 | **F2: estimate definition extracted, renderer delegates** | ✅ PASS | `renderer.dart:18-32` `fogoEstimatedHeightMeters` = band (90/350/1500/6000 → 4.5/7.5/12/21/30 m) + `fogoHeightJitter(coordinates) * 4`; `renderer.dart:425-436` `_estimatedHeightPx` measures the footprint, then delegates in one call (`renderer.dart:433-435`); **no local band logic, no `Object.hashAll`** in the estimate path. The `9bddfe2..ec0e6a5` renderer diff is a **pure extraction**: band bases/thresholds byte-identical, only the code moved |
+| 3 | **Golden pins the shared function against an independent spec** | ✅ PASS | `estimate_clip_test.dart:68-97` "estimated height matches the ADR-0005 specification": `fogoEstimatedHeightMeters` vs `_specEstimated` (independent band+FNV-1a reimplementation, lines 25-39) across 50/89.99/90/349.99/350/1499.99/1500/5999.99/6000/12000 m² — all band boundaries covered |
+| 4 | **Pixel test honest scope** | ✅ PASS | Renamed "renderer extrusion consumes the shared estimate function" (`estimate_clip_test.dart:163`); comment (lines 164-168) states sub-pixel jitter steps are pinned by the golden, not the pixel row; **no claim anywhere that pixels pin the seed**; flag fallback (`estimateBuildingHeights: false` → flat roof) still asserted (lines 258-283) |
+| 5 | **Seed-guard claim is true (empirical, both directions)** | ✅ PASS | See "Revert experiments" below — regression of the shared seed → suite red 4/4 fresh processes; renderer-path-only regression → suite green 3/3, exactly the documented limitation |
+| 6 | SDK `flutter analyze` | ✅ PASS | "No issues found" |
+| 7 | SDK `flutter test` | ✅ PASS | `+44: All tests passed!` (43 + 1 new golden) |
+| 8 | Root `flutter analyze` | ✅ PASS | "No issues found" |
+| 9 | Root `flutter test` | ✅ PASS | `+73: All tests passed!` |
+| 10 | `flutter build linux --debug` | ✅ PASS | `✓ Built build/linux/x64/debug/bundle/fogo` |
+| 11 | PBF sha256 + manifest | ✅ PASS | Recomputed `cdf25842bdea84298f30b4080670cb75bf493dfbafdeeb33fe8b271eb1be7e59` = expected = `assets/map/manifest.json` `sourceSha256` |
+| 12 | Protected areas `957ab7a..HEAD` | ✅ PASS | 6 files total, **0** under `assets/`/`tool/` (pathspec diff empty — byte-verified); 0 write-API/`dart:io`/`MethodChannel` hits in the code portion of the diff |
+| 13 | `Object.hashAll` confined | ✅ PASS | In `packages/fogo_map_sdk/lib`: only `road_geometry.dart:84,88` (`FogoRoadGeometryMerger._deduplicate` within-process buckets, pre-existing) + the doc comment explaining why it is not used for estimates |
+| 14 | Evidence file cycle-3 section honest | ✅ PASS | Admits both findings ("process failures on my side"), labels the prior "overwhelming majority" claim false, describes the golden as the seed guard and the pixel test as band/flag/wiring only — all verified accurate; every post-cycle-3 claim (format 97/0 exit 0, SDK 44/44, root 73/73, build PASS) reproduced by this rerun |
+| 15 | Commit message `ec0e6a5` honest | ✅ PASS | "shared pure function… renderer delegates to; a golden pins it against an independent spec implementation across all band boundaries. The pixel test keeps its real job (band/flag/wiring) with honest documentation" — each clause independently verified above |
+
+## Revert experiments (decisive cycle-4 evidence)
+
+Run in a throwaway clone of `ec0e6a5` under `/tmp/opencode/` (delivery repo,
+tests, and history untouched; the only main-repo working-tree change remains
+the pre-existing tracked `.dill`):
+
+- **A — renderer-path regression reintroduced** (`_estimatedHeightPx` patched
+  back to inline `Object.hashAll` band logic, shared function + golden
+  untouched): `estimate_clip_test.dart` **passes 3/3 fresh processes**. The
+  suite is blind to this specific revert — which is precisely what the
+  delivered documentation now says (pixel test guards band/flag/wiring, not
+  the seed). Honest limitation, confirmed, no false claim attached.
+- **B — shared seed regression reintroduced** (`fogoHeightJitter` body
+  patched to `Object.hashAll`): suite **fails 4/4 fresh processes** — the
+  golden "estimated height matches the ADR-0005 specification" red in
+  runs 1-3, the FNV-1a spec test red in 4/4 (run 4's golden pass is the
+  analytically expected 1-in-16 random jitter coincidence; the suite still
+  goes red via the spec test). This is the exact defect class of cycles 1-2,
+  and the delivered golden catches it. The cycle-3 mandate — a regression
+  test that actually guards the seed — is met at the level the code now
+  guarantees (the shared function); the guard is probabilistic per process
+  (~15/16 golden alone, ~1−(1/16)³ ≈ 99.98% with the FNV spec test) and
+  empirically verified.
+
+## Deviations (cycle 4)
+
+None blocking. Notes for the record:
+
+1. **Residual, documented and accepted:** a future edit that makes
+   `_estimatedHeightPx` bypass the shared function would pass the suite
+   (experiment A). Accepted because (a) it is documented honestly in the
+   delivered test and evidence, (b) the delegation is one line, read-verified
+   here, and (c) the pixel test still guards band/flag/wiring on the wired
+   path. Not a false claim; a declared limitation (Rule 13 satisfied).
+2. Wording nit: ADR-0005 specifies "deterministic, coordinate-seeded"
+   estimates; the FNV-1a constants are the implementation choice, pinned by
+   the golden pair rather than by ADR text. The test comment "FNV-1a seed
+   specified in ADR-0005" is loose by one degree; immaterial to guarding.
+3. Carried pre-existing (not blockers, unchanged from cycles 1-3): tracked
+   `.dill` build cache dirties on every test run (housekeeping untrack
+   recommended); app `railDisused #5D6879` override (`4d5faf5`); no direct
+   depth-ordering (painter's sort) test; polygon near-clip `near × 4` margin
+   undocumented.
+
+## Risks
+
+- Estimate determinism now rests on a one-line delegation; a deliberate
+  rewrite of `_estimatedHeightPx` would regress silently (experiment A).
+  Mitigation in place: shared function is the single definition, golden
+  guards it, and any such rewrite would re-duplicate band logic — a visible
+  diff pattern for review.
+- No new risks introduced by `ec0e6a5`; the extraction reduces surface area
+  (one definition instead of two places to drift).
+
+## Test Evidence (cycle 4)
+
+- SDK **44/44**, root **73/73** → 117 passed, 0 failed (rerun).
+- Analyze clean both; format 97/0 exit 0 (tree + fresh clone); Linux debug
+  build PASS; PBF sha exact.
+- Guard strength empirically re-tested both directions (A green 3/3, B red
+  4/4) — no claim in the delivery rests on unexecuted checks.
+- Missing: none material. Depth-ordering direct test remains a carried note
+  (painter's algorithm accepted by ADR-0005).
+
+## Documentation Validation
+
+- Evidence file cycle-3 section and commit message `ec0e6a5`: every factual
+  claim reproduced (format 97/0, 44/44, 73/73, build PASS, golden/pixel
+  division of labor). ADR-0005's "deterministic, coordinate-seeded" is now
+  true of shipped behavior and guarded by tests.
+- No documentation gaps remain for this delivery.
+
+## Auditor Limitations (Rule 13)
+
+- Linux x64, Flutter 3.47.1 stable only; release-mode AOT not sampled (the
+  seed is pure integer arithmetic — deterministic by construction on all
+  platforms).
+- Revert experiments sample 3-4 fresh processes per direction; the analytic
+  bounds (1-in-16 golden coincidence; 2.0 px window vs ~1.2 px signal from
+  cycle 3) make the conclusions exact, not statistical.
+- Fresh-clone format check ran without `pub get` (dart format does not need
+  package resolution; count 97 matches the full expected file set).
+- Pixel verification remains statistical/programmatic, not human visual
+  review.
+
+## Final Recommendation
+
+**APPROVED_WITH_NOTES** → `instrum-orchestrator` → user. All cycle-3
+findings fixed and verified; the full battery reproduces clean in both the
+working tree and a fresh clone of the delivered commit; and the two claims
+that matter most given this task's audit history — the golden guards the
+seed, the pixel test does not and says so — were both empirically
+re-tested. Notes record the honestly-documented residual limitation and
+four pre-existing carried items; none warrant another revision cycle.
+
+```yaml
+delivery_audit:
+  task_id: TASK-0005
+  work_packages_reviewed: [TASK-0005, ENG revision ec0e6a5]
+  verdict: APPROVED_WITH_NOTES
+  criteria_met:
+    - "F1: dart format --set-exit-if-changed exit 0, 97 files 0 changed, in working tree AND fresh clone of ec0e6a5"
+    - "F2: fogoEstimatedHeightMeters (renderer.dart:18-32) = band 90/350/1500/6000 -> 4.5/7.5/12/21/30 + fogoHeightJitter*4; _estimatedHeightPx delegates one-line, no Object.hashAll; extraction pure vs 9bddfe2"
+    - "Golden estimate_clip_test.dart:68-97 pins shared function vs independent _specEstimated across all band boundaries"
+    - "Pixel test renamed with honest scope (lines 163-168); no claim that pixels pin the seed; flag fallback still asserted"
+    - "Seed-guard claim empirically verified: shared-seed revert -> suite red 4/4 fresh processes (golden 3/4, FNV spec test 4/4)"
+    - "Renderer-path revert -> suite green 3/3, exactly the documented limitation (honest, not a false claim)"
+    - "SDK analyze clean; SDK tests 44/44 (rerun)"
+    - "Root analyze clean; root tests 73/73 (rerun)"
+    - "flutter build linux --debug PASS (bundle/fogo)"
+    - "PBF sha256 cdf25842...1be7e59 recomputed = manifest sourceSha256"
+    - "0 assets/ or tool/ files in 957ab7a..ec0e6a5; 0 write APIs in code diff; Object.hashAll only in merger dedupe + doc comment"
+    - "Evidence cycle-3 section + commit message ec0e6a5: every claim independently reproduced; no overstatement"
+  criteria_failed: []
+  out_of_scope_changes: []
+  test_quality:
+    passed: 117
+    failed: 0
+    missing: ["direct depth-ordering (painter's sort) test (carried note, accepted by ADR)"]
+  risks_introduced: []
+  debt_introduced:
+    - "Accepted residual (documented in delivery): suite blind to a future renderer-path bypass of the shared estimate function; one-line delegation is the mitigation point"
+    - "Pre-existing carried: tracked .dill cache dirties per test run; railDisused #5D6879 app override (4d5faf5); near-clip near x 4 margin undocumented"
+  documentation_gaps: []
+  notes:
+    - "User-authorized final cycle (4 of 4) after cycle-3 BLOCKED escalation"
+    - "Golden seed-guard detection is probabilistic per process (~15/16 alone; ~99.98% with the FNV spec test) - role claim verified, empirically 4/4"
+    - "ADR-0005 pins 'deterministic, coordinate-seeded'; FNV-1a constants pinned by the golden pair, not ADR text (wording nit in test comment)"
+  next_action: forward_to_orchestrator
+```
