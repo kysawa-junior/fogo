@@ -11,6 +11,23 @@ import 'overlays.dart';
 import 'road_geometry.dart';
 import 'style.dart';
 
+/// Stable FNV-1a jitter for display-only building height estimates.
+///
+/// `Object.hashAll` is randomized per VM process, which would change a
+/// building's estimated height on every app restart; this seed uses only
+/// integer arithmetic over the coordinate values, so it is deterministic
+/// across sessions and platforms (ADR-0005).
+@visibleForTesting
+double fogoHeightJitter(List<double> coordinates) {
+  int seed = 0x811c9dc5;
+  for (final double value in coordinates.take(8)) {
+    if (!value.isFinite) continue;
+    seed ^= (value * 1e6).round() & 0x7fffffff;
+    seed = (seed * 0x01000193) & 0x7fffffff;
+  }
+  return ((seed & 0xF) / 15).clamp(0, 1).toDouble();
+}
+
 @immutable
 class FogoMapRenderData {
   FogoMapRenderData({

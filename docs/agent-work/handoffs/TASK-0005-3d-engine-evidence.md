@@ -33,7 +33,7 @@ inspired by Mapbox Standard night.
 | `flutter analyze` (root app) | No issues |
 | `flutter test` (`packages/fogo_map_sdk`) | **38 passed** (incl. new 3D camera, near-clip, smoothing and estimate tests) |
 | `flutter test` (root app) | **73 passed** |
-| `dart format` (95 files) | applied; re-check clean |
+| `dart format` (97 files) | applied; re-check clean |
 | `flutter build linux --debug` | PASS (`build/linux/x64/debug/bundle/fogo`) |
 | `sha256sum tool/map_data/raw/sudeste-latest.osm.pbf` | `cdf25842…1be7e59` — unchanged, matches manifest `sourceSha256` |
 
@@ -88,3 +88,29 @@ statistical, not visual).
 - No disk tile cache (cells are already local; no network source exists).
 - No frame-time profiling of pitched repaints (surface cache makes pitch/
   bearing repaints reuse geometry, but no runtime numbers were collected).
+
+## Revision cycle 1 (2026-10-22, post-audit)
+
+Delivery Auditor verdict: `REVISION_REQUIRED` —
+[`delivery-reports/TASK-0005-3d-engine.md`](../delivery-reports/TASK-0005-3d-engine.md).
+All revision findings fixed:
+
+- **R1 (moderate)** — the estimate jitter used `Object.hashAll`, which the
+  Dart VM randomizes per process: the same building changed its estimated
+  height on every app restart, contradicting ADR-0005. Replaced with a
+  stable FNV-1a integer seed over coordinate values (`fogoHeightJitter`,
+  `@visibleForTesting`), golden-tested against an independent
+  implementation of the specification
+  (`test/estimate_clip_test.dart`).
+- **R2 (minor)** — the SDK README v3 update existed only in the working
+  tree; now committed.
+- **R3 (minor)** — LayersPanel caption now labels display-only estimated
+  heights, satisfying the ADR-0005 consequence clause.
+- Added direct near-plane polygon-clipping tests (straddling quad clips
+  instead of vanishing; fully-behind polygons return null; clipped vertices
+  project finite on the frustum).
+
+Post-revision checks (2026-10-22): root `flutter analyze` clean + **73/73**;
+SDK `flutter analyze` clean + **42/42**; `dart format` 97 files, 0 changed;
+`flutter build linux --debug` PASS. PBF unchanged
+(`cdf25842…1be7e59`).

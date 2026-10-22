@@ -71,7 +71,9 @@ class _LayersPanelState extends ConsumerState<LayersPanel> {
           const SizedBox(height: FogoSpacing.md),
           Text(
             'Sem seleção = todas as classes visíveis. '
-            'Camadas indisponíveis aguardam fonte de dados real.',
+            'Camadas indisponíveis aguardam fonte de dados real. '
+            'Em vista 3D, edifícios sem altura real do OSM usam alturas '
+            'estimadas apenas para visualização (ADR-0005).',
             style: FogoText.micro,
           ),
         ],

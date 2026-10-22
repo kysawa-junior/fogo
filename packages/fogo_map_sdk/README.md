@@ -82,11 +82,14 @@ Dispose the controller when its owning screen/controller is disposed. Optional
   manifest-error states. Cell corruption is reported in its typed `errors`
   list while other valid cells continue rendering. Missing cells are normal.
 
-Camera starts top-down (0°), with a regional default center and zoom 11. Pitch
-accepts only 0° or 45° and is not persisted by the SDK. Supported interactions
-include drag, pinch/trackpad pan-zoom, double-tap, wheel zoom, fling, secondary
-click selection, long-press selection, arrow-key pan, and +/- zoom. Accessibility
-semantics expose the map and zoom increase/decrease actions.
+Camera starts top-down (0°), with a regional default center and zoom 11. The
+camera is a true perspective pinhole over the ground plane: continuous pitch
+0°–60°, bearing rotation 0°–360° (trackpad twist), and near-plane clipping for
+geometry crossing the horizon. Center/zoom stay persisted by the host; pitch
+and bearing are transient. Supported interactions include drag, pinch/trackpad
+pan-zoom, double-tap, wheel zoom, fling, secondary click selection, long-press
+selection, arrow-key pan, and +/- zoom. Accessibility semantics expose the map
+and zoom increase/decrease actions.
 
 ## Data and rendering behavior
 
@@ -108,6 +111,14 @@ manifest bounds. Outside coverage and empty cells show the dark background.
 Renderer preserves area/water/boundary, waterline, rail, road, building,
 POI/label layer semantics; road class filters/order, casing/fill, bridges,
 tunnels, one-way markings, label collision, and screen-pixel road widths.
-Only a positive finite numeric `height` value extrudes at 45°; missing,
-non-numeric, non-finite, zero, and negative values stay flat. No height is
-inferred from `building:levels`.
+Roads, rails, waterlines and route lines are drawn through an
+endpoint-preserving Catmull-Rom spline, so dense OSM polylines read as
+flowing curves while shared junction nodes stay exactly connected and sharp
+corners stay crisp. Building footprints keep their original corners.
+
+When pitched, buildings extrude: a real positive numeric OSM `height` wins;
+otherwise the engine applies deterministic display-only estimates banded by
+footprint area (`FogoMapStyle.estimateBuildingHeights`, default true). Walls
+are shaded by a fixed light direction; estimates never modify cell data, and
+setting the flag to false restricts extrusion to real heights only.
+`building:levels` is never used as a height.
