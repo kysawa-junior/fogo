@@ -98,6 +98,17 @@ motor genérico MVT nem uma integração Mapbox.
   ferrovias, hidrografia linear e rotas passam por spline `FogoSmooth`
   (Catmull-Rom que preserva extremos e cantos vivos) antes do desenho, sem
   mover nós compartilhados de cruzamentos.
+- **Generalização cartográfica (ADR-0006)**: larguras de via vêm de rampas
+  contínuas por classe/zoom (`FogoCartography`, buckets de 1/4 de zoom) com
+  halo de casing proporcional à largura; buffers de via são construídos em
+  metros Mercator absolutos e cacheados por bucket — pan, rotação e pitch
+  reutilizam a geometria. Em pitch, as vias pintam antes das extrusões
+  ordenadas por profundidade (paredes próximas ocluem corretamente as ruas
+  atrás). Setas de mão única respeitam cruzamentos (exclusão de borda, piso
+  de 120 px, teto de 250 por quadro). Rótulos de lugar seguem faixas por
+  tipo com orçamento por prioridade (cidade > vila > bairro). Fills de áreas
+  levam um fio de contorno da mesma cor para fechar seams de antialiasing
+  entre polígonos vizinhos.
 - **Estilo e altura**: paleta noturna v3 é inspirada na hierarquia visual do
   Mapbox Standard night (fitas de via claras sobre terreno azul quase
   preto), mas os tokens são próprios do F.O.G.O.; não há alegação de

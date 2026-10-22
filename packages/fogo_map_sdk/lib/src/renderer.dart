@@ -156,6 +156,7 @@ class FogoMapPainter extends CustomPainter {
     _transform = FogoCameraTransform(camera, size);
     _visibleBounds = _transform.visibleBounds;
     projectionCache.clear();
+    final bool pitched = camera.pitch > 0.5;
     canvas.drawColor(style.background, BlendMode.src);
     canvas.save();
     try {
@@ -163,8 +164,16 @@ class FogoMapPainter extends CustomPainter {
       _paintAreas(canvas);
       _paintWaterLines(canvas);
       _paintRails(canvas);
-      _paintBuildings(canvas);
-      _paintRoads(canvas);
+      if (pitched) {
+        // Extrusions must paint over the ground, so near walls correctly
+        // occlude the streets behind them (ADR-0006); flat views keep roofs
+        // under the street surfaces.
+        _paintRoads(canvas, size);
+        _paintBuildings(canvas);
+      } else {
+        _paintBuildings(canvas);
+        _paintRoads(canvas, size);
+      }
       _paintLabels(canvas, size);
     } finally {
       canvas.restore();
@@ -173,15 +182,20 @@ class FogoMapPainter extends CustomPainter {
   }
 
   // ------------------------------------------------------------------
-  // Ground-space helpers: everything is buffered in ground pixels (east,
-  // north, relative to the camera center) and lifted to the screen through
-  // the 3D transform, with near-plane clipping built in.
+  // Metre-space helpers: geometry is buffered in absolute Web Mercator
+  // metres (pan/rotation stable) and lifted to the screen through the 3D
+  // transform, with near-plane clipping built in.
   // ------------------------------------------------------------------
+
+  double get _zoomBucket => FogoCartography.zoomBucket(camera.zoom);
+
+  /// Resample step that keeps ~8 screen pixels between spline samples.
+  double get _smoothStep => 8 / _transform.scale;
 
   Offset _ground(double lat, double lng) => projectionCache.project(
     lat,
     lng,
-    (la, ln) => _transform.groundOffset(FogoCoordinate(la, ln)),
+    (la, ln) => FogoProjection.project(FogoCoordinate(la, ln)),
   );
 
   List<Offset> _groundPoints(List<double> coordinates) => [
@@ -194,12 +208,12 @@ class FogoMapPainter extends CustomPainter {
 
   void _fillPolygon(
     Canvas canvas,
-    List<Offset> ground,
+    List<Offset> meters,
     Paint paint, [
     double height = 0,
   ]) {
-    final List<Offset>? screen = _transform.projectGroundPolygon(
-      ground,
+    final List<Offset>? screen = _transform.projectMetersPolygon(
+      meters,
       height,
     );
     if (screen == null) return;
@@ -209,14 +223,20 @@ class FogoMapPainter extends CustomPainter {
 
   void _strokeGround(
     Canvas canvas,
-    List<Offset> ground,
+    List<Offset> meters,
     Paint paint, {
     bool smooth = false,
     double height = 0,
   }) {
-    final List<Offset> points = smooth ? FogoSmooth.polyline(ground) : ground;
+    final List<Offset> points = smooth
+        ? FogoSmooth.polyline(
+            meters,
+            stepPx: _smoothStep,
+            epsilon: 0.05 / _transform.scale,
+          )
+        : meters;
     if (points.length < 2) return;
-    for (final List<Offset> run in _transform.projectGroundPolyline(
+    for (final List<Offset> run in _transform.projectMetersPolyline(
       points,
       height,
     )) {
@@ -224,18 +244,14 @@ class FogoMapPainter extends CustomPainter {
     }
   }
 
-  double _groundDepth(List<Offset> ground) {
+  double _groundDepth(List<Offset> meters) {
     double x = 0;
     double y = 0;
-    for (final Offset point in ground) {
+    for (final Offset point in meters) {
       x += point.dx;
       y += point.dy;
     }
-    final (double, double, double) rotated = _transform.rotateGround(
-      Offset(x / ground.length, y / ground.length),
-      0,
-    );
-    return _transform.rotatedDepth(rotated.$2, rotated.$3);
+    return _transform.metersDepth(Offset(x / meters.length, y / meters.length));
   }
 
   void _clipToCoverage(Canvas canvas) {
@@ -247,7 +263,7 @@ class FogoMapPainter extends CustomPainter {
       _ground(bounds.north, bounds.west),
       _ground(bounds.south, bounds.west),
     ];
-    final List<List<Offset>> runs = _transform.projectGroundPolyline(ring);
+    final List<List<Offset>> runs = _transform.projectMetersPolyline(ring);
     if (runs.isEmpty) return;
     // Concatenate all visible runs into ONE subpath: at pitch the far side
     // of the ring is clipped away and close() must bridge the near side in
@@ -279,6 +295,11 @@ class FogoMapPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.4
       ..color = style.boundary;
+    // Same-colour hairline on fills closes the antialiasing seams between
+    // adjacent parcels (ADR-0006).
+    final Paint seam = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
     for (final FogoMapArea area in data.areas) {
       if (!_visible(area.bbox)) continue;
       final List<Offset> ground = _groundPoints(area.coordinates);
@@ -292,7 +313,9 @@ class FogoMapPainter extends CustomPainter {
           FogoAreaKind.farmland => style.farmland,
           FogoAreaKind.boundary => style.boundary,
         };
+        seam.color = fill.color;
         _fillPolygon(canvas, ground, fill);
+        _fillPolygon(canvas, ground, seam);
       }
     }
   }
@@ -332,10 +355,12 @@ class FogoMapPainter extends CustomPainter {
       if (!_visible(rail.bbox)) continue;
       final List<Offset> ground = FogoSmooth.polyline(
         _groundPoints(rail.coordinates),
+        stepPx: _smoothStep,
+        epsilon: 0.05 / _transform.scale,
       );
       if (ground.length < 2) continue;
       if (rail.kind == FogoRailKind.disused) {
-        for (final List<Offset> run in _transform.projectGroundPolyline(
+        for (final List<Offset> run in _transform.projectMetersPolyline(
           ground,
         )) {
           _drawDashed(
@@ -360,7 +385,7 @@ class FogoMapPainter extends CustomPainter {
             ..strokeCap = StrokeCap.square
             ..strokeJoin = StrokeJoin.round,
         );
-        for (final List<Offset> run in _transform.projectGroundPolyline(
+        for (final List<Offset> run in _transform.projectMetersPolyline(
           ground,
         )) {
           _drawDashed(
@@ -421,15 +446,16 @@ class FogoMapPainter extends CustomPainter {
   /// stable jitter. Cell data stays untouched; see ADR-0005. The height
   /// definition itself lives in the shared pure function
   /// [fogoEstimatedHeightMeters]; this wrapper only measures the footprint
-  /// and converts metres to pixels.
-  double _estimatedHeightPx(FogoMapArea building, List<Offset> ground) {
+  /// (absolute mercator metres) and converts metres to pixels.
+  double _estimatedHeightPx(FogoMapArea building, List<Offset> groundMeters) {
     final double cosLat = math.cos(camera.center.latitude * math.pi / 180);
-    final double s = _transform.scale;
     double sum = 0;
-    for (int i = 0; i < ground.length - 1; i++) {
-      sum += ground[i].dx * ground[i + 1].dy - ground[i + 1].dx * ground[i].dy;
+    for (int i = 0; i < groundMeters.length - 1; i++) {
+      sum +=
+          groundMeters[i].dx * groundMeters[i + 1].dy -
+          groundMeters[i + 1].dx * groundMeters[i].dy;
     }
-    final double areaM2 = (sum.abs() * 0.5) * cosLat * cosLat / (s * s);
+    final double areaM2 = (sum.abs() * 0.5) * cosLat * cosLat;
     return _transform.heightToPixels(
       fogoEstimatedHeightMeters(building.coordinates, areaM2),
     );
@@ -459,10 +485,10 @@ class FogoMapPainter extends CustomPainter {
             0.5 *
                 ((normal.dx * light.dx + normal.dy * light.dy) /
                     normal.distance);
-        final Offset? s0 = _transform.projectGround(a, 0);
-        final Offset? s1 = _transform.projectGround(b, 0);
-        final Offset? s2 = _transform.projectGround(b, heightPx);
-        final Offset? s3 = _transform.projectGround(a, heightPx);
+        final Offset? s0 = _transform.projectMeters(a, 0);
+        final Offset? s1 = _transform.projectMeters(b, 0);
+        final Offset? s2 = _transform.projectMeters(b, heightPx);
+        final Offset? s3 = _transform.projectMeters(a, heightPx);
         if (s0 == null || s1 == null || s2 == null || s3 == null) continue;
         final ui.Path wall = ui.Path()
           ..moveTo(s0.dx, s0.dy)
@@ -480,7 +506,7 @@ class FogoMapPainter extends CustomPainter {
             )!,
         );
       }
-      final List<Offset>? top = _transform.projectGroundPolygon(
+      final List<Offset>? top = _transform.projectMetersPolygon(
         ground,
         heightPx,
       );
@@ -490,14 +516,14 @@ class FogoMapPainter extends CustomPainter {
       if (camera.zoom >= 16) canvas.drawPath(roofPath, stroke);
       return;
     }
-    final List<Offset>? top = _transform.projectGroundPolygon(ground, 0);
+    final List<Offset>? top = _transform.projectMetersPolygon(ground, 0);
     if (top == null) return;
     final ui.Path roofPath = _path(top)..close();
     canvas.drawPath(roofPath, roof);
     if (camera.zoom >= 16) canvas.drawPath(roofPath, stroke);
   }
 
-  void _paintRoads(Canvas canvas) {
+  void _paintRoads(Canvas canvas, Size size) {
     if (!style.showRoads) return;
     final Map<FogoRoadClass, List<FogoMapRoad>> byClass = {
       for (final FogoRoadClass roadClass in FogoRoadClass.values) roadClass: [],
@@ -521,15 +547,19 @@ class FogoMapPainter extends CustomPainter {
     final List<FogoRoadClass> order = FogoRoadClass.values.reversed.toList();
     final Paint fill = Paint()..style = PaintingStyle.fill;
 
+    // Presentation widths come from the zoom-bucket ramp; the casing halo
+    // grows with the street instead of a fixed pad (ADR-0006).
     for (final FogoRoadClass roadClass in order) {
       final List<FogoMapRoad> roads = byClass[roadClass]!;
       if (roads.isEmpty) continue;
+      final double width = FogoCartography.widthPx(roadClass, _zoomBucket);
+      final double pad = FogoCartography.casingPad(width);
       for (final FogoMapRoad road in roads) {
         _drawSurface(
           canvas,
           surfaceCache.casingSurface(
             road,
-            _roadWidth(roadClass) / 2 + 1.2,
+            width / 2 + pad,
             _transform,
             projectionCache,
           ),
@@ -540,11 +570,13 @@ class FogoMapPainter extends CustomPainter {
     for (final FogoRoadClass roadClass in order) {
       for (final FogoMapRoad road in bridges) {
         if (road.roadClass != roadClass) continue;
+        final double width = FogoCartography.widthPx(roadClass, _zoomBucket);
+        final double pad = FogoCartography.casingPad(width) + 0.4;
         _drawSurface(
           canvas,
           surfaceCache.casingSurface(
             road,
-            _roadWidth(roadClass) / 2 + 1.6,
+            width / 2 + pad,
             _transform,
             projectionCache,
           ),
@@ -555,12 +587,13 @@ class FogoMapPainter extends CustomPainter {
     for (final FogoRoadClass roadClass in order) {
       final List<FogoMapRoad> roads = byClass[roadClass]!;
       if (roads.isEmpty) continue;
+      final double width = FogoCartography.widthPx(roadClass, _zoomBucket);
       for (final FogoMapRoad road in roads) {
         _drawSurface(
           canvas,
           surfaceCache.fillSurface(
             road,
-            _roadWidth(roadClass) / 2,
+            width / 2,
             _transform,
             projectionCache,
           ),
@@ -571,11 +604,12 @@ class FogoMapPainter extends CustomPainter {
     for (final FogoRoadClass roadClass in order) {
       for (final FogoMapRoad road in bridges) {
         if (road.roadClass != roadClass) continue;
+        final double width = FogoCartography.widthPx(roadClass, _zoomBucket);
         _drawSurface(
           canvas,
           surfaceCache.fillSurface(
             road,
-            _roadWidth(roadClass) / 2,
+            width / 2,
             _transform,
             projectionCache,
           ),
@@ -586,11 +620,12 @@ class FogoMapPainter extends CustomPainter {
     for (final FogoRoadClass roadClass in order) {
       for (final FogoMapRoad road in tunnels) {
         if (road.roadClass != roadClass) continue;
+        final double width = FogoCartography.widthPx(roadClass, _zoomBucket);
         _drawSurface(
           canvas,
           surfaceCache.fillSurface(
             road,
-            _roadWidth(roadClass) / 2,
+            width / 2,
             _transform,
             projectionCache,
           ),
@@ -598,7 +633,7 @@ class FogoMapPainter extends CustomPainter {
         );
       }
     }
-    _paintOneway(canvas, byClass, bridges);
+    _paintOneway(canvas, Offset.zero & size, byClass, bridges);
   }
 
   void _drawSurface(Canvas canvas, FogoRoadSurface surface, Paint paint) {
@@ -609,6 +644,7 @@ class FogoMapPainter extends CustomPainter {
 
   void _paintOneway(
     Canvas canvas,
+    Rect view,
     Map<FogoRoadClass, List<FogoMapRoad>> byClass,
     List<FogoMapRoad> bridges,
   ) {
@@ -619,35 +655,57 @@ class FogoMapPainter extends CustomPainter {
       ...byClass.values.expand((roads) => roads),
       ...bridges,
     ]) {
-      if (drawn >= 500) break;
+      if (drawn >= 250) break;
       if (!road.oneway ||
           road.roadClass == FogoRoadClass.path ||
           road.roadClass == FogoRoadClass.track) {
         continue;
       }
+      final double width = FogoCartography.widthPx(road.roadClass, _zoomBucket);
       drawn += _drawOnewayArrows(
         canvas,
-        road.coordinates,
+        view,
+        road,
         arrowPaint,
-        spacing: road.roadClass == FogoRoadClass.service ? 150 : 100,
-        scale: math.max(1, _roadWidth(road.roadClass) * 0.22),
+        // Density scales with the street; the 120px floor keeps dense
+        // residential grids from turning into arrow wallpaper (ADR-0006).
+        spacing: math.max(120, width * 18),
+        edge: width * 1.6,
+        scale: math.max(1, width * 0.22),
       );
     }
   }
 
   int _drawOnewayArrows(
     Canvas canvas,
-    List<double> coordinates,
+    Rect view,
+    FogoMapRoad road,
     Paint paint, {
     required double spacing,
+    required double edge,
     required double scale,
   }) {
-    if (coordinates.length < 4) return 0;
-    final List<Offset> ground = FogoSmooth.polyline(_groundPoints(coordinates));
-    final List<List<Offset>> runs = _transform.projectGroundPolyline(ground);
+    if (road.coordinates.length < 4) return 0;
+    final List<Offset> meters = FogoSmooth.polyline(
+      _groundPoints(road.coordinates),
+      stepPx: _smoothStep,
+      epsilon: 0.05 / _transform.scale,
+    );
+    final List<List<Offset>> runs = _transform.projectMetersPolyline(meters);
     int drawn = 0;
-    double carried = 0;
     for (final List<Offset> run in runs) {
+      if (run.length < 2) continue;
+      // Junction exclusion: cumulative screen distance from each run end;
+      // arrows stay clear of the [edge] band where ways actually meet.
+      final List<double> cumulative = [0.0];
+      for (int i = 0; i < run.length - 1; i++) {
+        cumulative.add(cumulative.last + (run[i + 1] - run[i]).distance);
+      }
+      final double total = cumulative.last;
+      if (total < edge * 2) continue;
+      // Per-run spacing continuity, phase-shifted so arrows do not hug
+      // the junction edge.
+      double carried = spacing * 0.5;
       for (int i = 0; i < run.length - 1; i++) {
         final Offset a = run[i];
         final Offset b = run[i + 1];
@@ -655,11 +713,14 @@ class FogoMapPainter extends CustomPainter {
         final double length = segment.distance;
         if (length == 0) continue;
         carried += length;
+        final double middle = cumulative[i] + length / 2;
+        if (middle < edge || total - middle < edge) continue;
         if (carried < spacing) continue;
         carried = 0;
-        final Offset middle = a + segment / 2;
+        final Offset center = a + segment / 2;
+        if (!view.inflate(20).contains(center)) continue;
         canvas.save();
-        canvas.translate(middle.dx, middle.dy);
+        canvas.translate(center.dx, center.dy);
         canvas.rotate(math.atan2(segment.dy, segment.dx));
         final double s = 3.2 * scale;
         final ui.Path arrow = ui.Path()
@@ -675,28 +736,69 @@ class FogoMapPainter extends CustomPainter {
     return drawn;
   }
 
+  /// Per-kind visible zoom ranges plus a priority budget for place labels
+  /// (ADR-0006). Pure so tests can pin the generalization rules.
+  @visibleForTesting
+  static List<FogoMapLabel> selectPlaceLabels(
+    List<FogoMapLabel> labels,
+    double zoom, {
+    int? budget,
+  }) {
+    final List<FogoMapLabel> visible = [
+      for (final FogoMapLabel label in labels)
+        if (_placeLabelInRange(label.kind, zoom)) label,
+    ];
+    visible.sort((a, b) {
+      final int priority = _placePriority(a.kind)
+          .compareTo(_placePriority(b.kind));
+      return priority != 0 ? priority : a.text.compareTo(b.text);
+    });
+    final int limit =
+        budget ??
+        (zoom < 12
+            ? 8
+            : zoom < 14
+            ? 12
+            : 18);
+    return visible.length <= limit ? visible : visible.sublist(0, limit);
+  }
+
+  static bool _placeLabelInRange(FogoLabelKind kind, double zoom) =>
+      switch (kind) {
+        FogoLabelKind.city => zoom <= 14,
+        FogoLabelKind.town => zoom >= 10 && zoom <= 15,
+        FogoLabelKind.village => zoom >= 12 && zoom <= 15,
+        FogoLabelKind.suburb => zoom >= 13 && zoom <= 16.5,
+      };
+
+  static int _placePriority(FogoLabelKind kind) => switch (kind) {
+    FogoLabelKind.city => 0,
+    FogoLabelKind.town => 1,
+    FogoLabelKind.village => 2,
+    FogoLabelKind.suburb => 3,
+  };
+
   void _paintLabels(Canvas canvas, Size size) {
     if (!style.showLabels) return;
     final FogoLabelLayout layout = FogoLabelLayout(sameLabelDistance: 350);
     final Rect view = Offset.zero & size;
-    for (final FogoMapLabel label in data.labels) {
+    for (final FogoMapLabel label in selectPlaceLabels(
+      data.labels,
+      camera.zoom,
+    )) {
       final double fontSize;
       final Color color;
       switch (label.kind) {
         case FogoLabelKind.city:
-          if (camera.zoom > 14) continue;
           fontSize = 14;
           color = style.labelCity;
         case FogoLabelKind.town:
-          if (camera.zoom < 10 || camera.zoom > 15) continue;
           fontSize = 11.5;
           color = style.labelSuburb;
         case FogoLabelKind.village:
-          if (camera.zoom < 12) continue;
           fontSize = 10;
           color = style.labelSuburb;
         case FogoLabelKind.suburb:
-          if (camera.zoom < 13) continue;
           fontSize = 10;
           color = style.labelSuburb;
       }
@@ -767,8 +869,12 @@ class FogoMapPainter extends CustomPainter {
     int drawn = 0;
     for (final FogoMapRoad road in named) {
       if (drawn >= 200) break;
-      final List<List<Offset>> runs = _transform.projectGroundPolyline(
-        FogoSmooth.polyline(_groundPoints(road.coordinates)),
+      final List<List<Offset>> runs = _transform.projectMetersPolyline(
+        FogoSmooth.polyline(
+          _groundPoints(road.coordinates),
+          stepPx: _smoothStep,
+          epsilon: 0.05 / _transform.scale,
+        ),
       );
       double carry = spacing * 0.35;
       int labelsOnRoad = 0;
@@ -879,10 +985,14 @@ class FogoMapPainter extends CustomPainter {
 
   void _paintPolylines(Canvas canvas) {
     for (final FogoMapPolyline polyline in polylines) {
-      final List<Offset> ground = FogoSmooth.polyline([
-        for (final FogoCoordinate coordinate in polyline.points)
-          _transform.groundOffset(coordinate),
-      ]);
+      final List<Offset> ground = FogoSmooth.polyline(
+        [
+          for (final FogoCoordinate coordinate in polyline.points)
+            FogoProjection.project(coordinate),
+        ],
+        stepPx: _smoothStep,
+        epsilon: 0.05 / _transform.scale,
+      );
       if (polyline.borderColor != null && polyline.borderWidth > 0) {
         _strokeScreen(
           canvas,
@@ -912,11 +1022,11 @@ class FogoMapPainter extends CustomPainter {
 
   void _strokeScreen(
     Canvas canvas,
-    List<Offset> ground,
+    List<Offset> meters,
     Paint paint,
     List<double> dash,
   ) {
-    for (final List<Offset> run in _transform.projectGroundPolyline(ground)) {
+    for (final List<Offset> run in _transform.projectMetersPolyline(meters)) {
       if (dash.isEmpty) {
         canvas.drawPath(_path(run), paint);
       } else {
@@ -1028,19 +1138,6 @@ class FogoMapPainter extends CustomPainter {
       bbox[2] >= _visibleBounds.south &&
       bbox[1] <= _visibleBounds.east &&
       bbox[3] >= _visibleBounds.west;
-
-  double _roadWidth(FogoRoadClass roadClass) => switch (roadClass) {
-    FogoRoadClass.motorway => 11,
-    FogoRoadClass.trunk => 10,
-    FogoRoadClass.primary => 9,
-    FogoRoadClass.secondary => 6,
-    FogoRoadClass.tertiary => 5.75,
-    FogoRoadClass.unclassified || FogoRoadClass.residential => 5,
-    FogoRoadClass.other => 4.25,
-    FogoRoadClass.service => 3.5,
-    FogoRoadClass.track => 2.75,
-    FogoRoadClass.path => 2,
-  };
 
   static double _lineScale(double zoom) =>
       zoom <= 12 ? 0.7 : math.min(3.2, 1 + (zoom - 12) * 0.26).toDouble();

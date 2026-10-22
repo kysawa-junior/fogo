@@ -189,6 +189,50 @@ class FogoCameraTransform {
     return projectRotated(rotated.$1, rotated.$2, rotated.$3);
   }
 
+  /// Screen position of an absolute Web Mercator point (in metres) at
+  /// [height] ground pixels. Shared by the pan-stable surface pipeline.
+  Offset? projectMeters(Offset meters, [double height = 0]) {
+    final Offset center = FogoProjection.project(camera.center);
+    return projectGround(
+      Offset((meters.dx - center.dx) * scale, (meters.dy - center.dy) * scale),
+      height,
+    );
+  }
+
+  /// Camera-space depth of an absolute-mercator point on the ground; used
+  /// for painter's-algorithm ordering of extrusions.
+  double metersDepth(Offset meters) {
+    final Offset center = FogoProjection.project(camera.center);
+    final (double, double, double) rotated = rotateGround(
+      Offset((meters.dx - center.dx) * scale, (meters.dy - center.dy) * scale),
+      0,
+    );
+    return rotatedDepth(rotated.$2, rotated.$3);
+  }
+
+  /// Near-plane-clipped screen runs of an absolute-mercator-metre polyline
+  /// at a constant height in ground pixels.
+  List<List<Offset>> projectMetersPolyline(
+    List<Offset> meters, [
+    double height = 0,
+  ]) {
+    final Offset center = FogoProjection.project(camera.center);
+    return projectGroundPolyline([
+      for (final Offset point in meters)
+        Offset((point.dx - center.dx) * scale, (point.dy - center.dy) * scale),
+    ], height);
+  }
+
+  /// Near-plane-clipped screen polygon for absolute-mercator-metre input;
+  /// null when nothing remains in front of the near plane.
+  List<Offset>? projectMetersPolygon(List<Offset> meters, [double height = 0]) {
+    final Offset center = FogoProjection.project(camera.center);
+    return projectGroundPolygon([
+      for (final Offset point in meters)
+        Offset((point.dx - center.dx) * scale, (point.dy - center.dy) * scale),
+    ], height);
+  }
+
   /// Projects a ground polyline, clipping each segment against the near
   /// plane. Returns screen-space runs; a new run starts after a fully
   /// clipped segment, so pitched views stay continuous where visible.

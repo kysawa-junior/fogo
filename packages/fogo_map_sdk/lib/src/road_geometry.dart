@@ -5,6 +5,88 @@ import 'data.dart';
 import 'camera.dart';
 import 'coordinates.dart';
 
+/// Cartographic generalization rules shared by the renderer, the surface
+/// cache and the tests (ADR-0006). Presentation widths are screen pixels
+/// evaluated on quarter-zoom buckets; road buffers are built in mercator
+/// metres per bucket so pan, rotation and pitch reuse geometry.
+abstract final class FogoCartography {
+  static double zoomBucket(double zoom) => (zoom * 4).round() / 4;
+
+  static double _ramp(double zoom, List<(double, double)> anchors) {
+    if (zoom <= anchors.first.$1) return anchors.first.$2;
+    for (int i = 1; i < anchors.length; i++) {
+      if (zoom <= anchors[i].$1) {
+        final (double z0, double w0) = anchors[i - 1];
+        final (double z1, double w1) = anchors[i];
+        return w0 + (w1 - w0) * ((zoom - z0) / (z1 - z0));
+      }
+    }
+    return anchors.last.$2;
+  }
+
+  /// Screen-pixel width of a street class at [zoom]; continuous, no jumps.
+  static double widthPx(FogoRoadClass roadClass, double zoom) =>
+      switch (roadClass) {
+        FogoRoadClass.motorway => _ramp(zoom, [
+          (7, 4.5),
+          (10, 6),
+          (13, 8.5),
+          (16, 11),
+          (19, 13),
+        ]),
+        FogoRoadClass.trunk => _ramp(zoom, [
+          (7, 4),
+          (10, 5.5),
+          (13, 8),
+          (16, 10),
+          (19, 12),
+        ]),
+        FogoRoadClass.primary => _ramp(zoom, [
+          (8, 2.5),
+          (11, 4),
+          (13, 5.5),
+          (16, 8),
+          (19, 11),
+        ]),
+        FogoRoadClass.secondary => _ramp(zoom, [
+          (9, 2),
+          (12, 3),
+          (14, 4.5),
+          (16, 6.5),
+          (19, 9),
+        ]),
+        FogoRoadClass.tertiary => _ramp(zoom, [
+          (11, 1.5),
+          (13, 2.5),
+          (15, 4),
+          (17, 6),
+          (19, 8),
+        ]),
+        FogoRoadClass.unclassified || FogoRoadClass.residential => _ramp(zoom, [
+          (11.5, 1.5),
+          (13, 2),
+          (15, 3.5),
+          (17, 5.5),
+          (19, 7),
+        ]),
+        FogoRoadClass.other => _ramp(zoom, [(14, 1.5), (17, 3), (19, 5)]),
+        FogoRoadClass.service => _ramp(zoom, [(14.5, 1.2), (16, 2), (19, 4.5)]),
+        FogoRoadClass.track => _ramp(zoom, [(13, 1), (16, 2), (19, 3.5)]),
+        FogoRoadClass.path => _ramp(zoom, [(16, 1), (19, 2.5)]),
+      };
+
+  /// Casing halo grows with the street instead of a fixed pad.
+  static double casingPad(double widthPx) =>
+      (0.6 + widthPx * 0.18).clamp(0.8, 2.4).toDouble();
+
+  /// Metre half-width for buffering, derived from the bucket scale.
+  static double halfWidthMeters(double widthPx, double zoomBucket) =>
+      widthPx /
+      (256 *
+          math.pow(2, zoomBucket).toDouble() /
+          FogoProjection.worldCircumference);
+}
+
 abstract final class FogoRoadGeometryMerger {
   static const double _maxDeflection = math.pi * 5 / 6;
 
@@ -275,19 +357,16 @@ class _Endpoint {
   final bool atStart;
 }
 
-/// Shared ground-plane coordinates within one paint pass.
+/// Shared absolute Web Mercator coordinates (metres) within one paint pass.
+/// Absolute values are stable across pan and zoom, so one frame's cache
+/// serves every consumer consistently.
 class FogoProjectionCache {
   final Map<(double, double), Offset> _points = {};
 
   Offset project(double lat, double lng, Offset Function(double, double) fn) =>
-      _points.putIfAbsent((lat, lng), () {
-        final Offset point = fn(lat, lng);
-        return Offset(_snap(point.dx), _snap(point.dy));
-      });
+      _points.putIfAbsent((lat, lng), () => fn(lat, lng));
 
   void clear() => _points.clear();
-
-  static double _snap(double value) => (value * 2).roundToDouble() / 2;
 }
 
 class FogoRoadSurface {
@@ -542,45 +621,49 @@ class FogoRoadSurfaceCache {
   FogoRoadSurface _surface(
     Expando<_CachedSurface> cache,
     FogoMapRoad road,
-    double halfWidth,
+    double halfWidthPx,
     FogoCameraTransform transform,
     FogoProjectionCache projectionCache,
   ) {
+    // Buffers live in absolute mercator metres keyed by zoom bucket and
+    // metre half-width, so pan, rotation and pitch reuse geometry; only a
+    // bucket crossing rebuilds (ADR-0006).
+    final double zoomBucket = FogoCartography.zoomBucket(transform.camera.zoom);
+    final double bucketScale =
+        256 *
+        math.pow(2, zoomBucket).toDouble() /
+        FogoProjection.worldCircumference;
+    final double halfWidth = halfWidthPx / bucketScale;
     final _CachedSurface? old = cache[road];
     if (old != null &&
-        old.center == transform.camera.center &&
-        old.zoom == transform.camera.zoom &&
+        old.zoomBucket == zoomBucket &&
         old.halfWidth == halfWidth) {
       return old.surface;
     }
-    // Ground space is pitch/bearing independent: tilting or rotating the
-    // camera reuses buffered surfaces, and the spline pass reads dense OSM
-    // polylines as flowing curves with junction endpoints intact.
-    final List<Offset> ground = [
+    final List<Offset> meters = [
       for (int i = 0; i < road.coordinates.length; i += 2)
         projectionCache.project(
           road.coordinates[i],
           road.coordinates[i + 1],
-          (lat, lng) => transform.groundOffset(FogoCoordinate(lat, lng)),
+          (lat, lng) => FogoProjection.project(FogoCoordinate(lat, lng)),
         ),
     ];
+    final double step = 8 / bucketScale;
+    final double epsilon = 0.05 / bucketScale;
     final FogoRoadSurface surface =
-        FogoRoadSurfaceBuilder.build(FogoSmooth.polyline(ground), halfWidth) ??
+        FogoRoadSurfaceBuilder.build(
+          FogoSmooth.polyline(meters, stepPx: step, epsilon: epsilon),
+          halfWidth,
+        ) ??
         FogoRoadSurface.empty;
-    cache[road] = _CachedSurface(
-      transform.camera.center,
-      transform.camera.zoom,
-      halfWidth,
-      surface,
-    );
+    cache[road] = _CachedSurface(zoomBucket, halfWidth, surface);
     return surface;
   }
 }
 
 class _CachedSurface {
-  const _CachedSurface(this.center, this.zoom, this.halfWidth, this.surface);
-  final FogoCoordinate center;
-  final double zoom;
+  const _CachedSurface(this.zoomBucket, this.halfWidth, this.surface);
+  final double zoomBucket;
   final double halfWidth;
   final FogoRoadSurface surface;
 }
@@ -630,13 +713,19 @@ class FogoLabelLayout {
 /// stay connected.
 abstract final class FogoSmooth {
   static const double _cornerDegrees = 32;
-  static const double _stepPx = 8;
 
-  static List<Offset> polyline(List<Offset> points) {
+  /// Endpoint-preserving curve smoothing. [stepPx] is the resample step and
+  /// [epsilon] the dedupe distance, both in the caller's coordinate space
+  /// (screen pixels for strokes, metres for cached road buffers).
+  static List<Offset> polyline(
+    List<Offset> points, {
+    double stepPx = 8,
+    double epsilon = 0.05,
+  }) {
     if (points.length < 3) return points;
     final List<Offset> clean = <Offset>[points.first];
     for (final Offset point in points.skip(1)) {
-      if ((clean.last - point).distance > 0.05) clean.add(point);
+      if ((clean.last - point).distance > epsilon) clean.add(point);
     }
     if (clean.length < 3) return clean;
     final double corner = _cornerDegrees * math.pi / 180;
@@ -644,15 +733,17 @@ abstract final class FogoSmooth {
     int runStart = 0;
     for (int i = 1; i < clean.length - 1; i++) {
       if (_turn(clean[i - 1], clean[i], clean[i + 1]) > corner) {
-        runs.add(_spline(clean, runStart, i));
+        runs.add(_spline(clean, runStart, i, stepPx));
         runStart = i;
       }
     }
-    runs.add(_spline(clean, runStart, clean.length - 1));
+    runs.add(_spline(clean, runStart, clean.length - 1, stepPx));
     final List<Offset> out = <Offset>[];
     for (final List<Offset> run in runs) {
       for (final Offset point in run) {
-        if (out.isEmpty || (out.last - point).distance > 0.05) out.add(point);
+        if (out.isEmpty || (out.last - point).distance > epsilon) {
+          out.add(point);
+        }
       }
     }
     return out;
@@ -668,7 +759,12 @@ abstract final class FogoSmooth {
   }
 
   /// Catmull-Rom resample of clean[from..to]; both ends are exact.
-  static List<Offset> _spline(List<Offset> clean, int from, int to) {
+  static List<Offset> _spline(
+    List<Offset> clean,
+    int from,
+    int to,
+    double stepPx,
+  ) {
     if (to - from < 2) return clean.sublist(from, to + 1);
     final List<Offset> out = <Offset>[];
     for (int i = from; i < to; i++) {
@@ -676,7 +772,7 @@ abstract final class FogoSmooth {
       final Offset p1 = clean[i];
       final Offset p2 = clean[i + 1];
       final Offset p3 = i + 2 > to ? clean[to] : clean[i + 2];
-      final int steps = math.max(1, ((p2 - p1).distance / _stepPx).ceil());
+      final int steps = math.max(1, ((p2 - p1).distance / stepPx).ceil());
       for (int s = 0; s < steps; s++) {
         out.add(_rom(p0, p1, p2, p3, s / steps));
       }

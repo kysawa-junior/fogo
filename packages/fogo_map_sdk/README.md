@@ -116,6 +116,17 @@ endpoint-preserving Catmull-Rom spline, so dense OSM polylines read as
 flowing curves while shared junction nodes stay exactly connected and sharp
 corners stay crisp. Building footprints keep their original corners.
 
+Street widths come from per-class zoom ramps evaluated on quarter-zoom
+buckets; the casing halo grows with the street. Road buffers are built in
+absolute mercator metres and cached by bucket, so pan, rotation and pitch
+reuse geometry — only crossing a zoom bucket rebuilds. In pitched views the
+ground streets paint before depth-sorted extrusions, so near walls
+correctly occlude the streets behind them. One-way arrows keep clear of
+junction nodes (edge exclusion, 120 px floor, 250 per frame). Place labels
+follow per-kind zoom ranges with a priority budget (city > town > village >
+suburb). Area fills carry a same-colour hairline that closes antialiasing
+seams between adjacent parcels.
+
 When pitched, buildings extrude: a real positive numeric OSM `height` wins;
 otherwise the engine applies deterministic display-only estimates banded by
 footprint area (`FogoMapStyle.estimateBuildingHeights`, default true). Walls

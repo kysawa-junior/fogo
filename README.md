@@ -38,10 +38,12 @@ aplicação. Nenhum dado operacional fictício é carregado por padrão.
   própria (NN + 2-opt) sobre **matriz de distâncias da rede viária (OSRM)**
   e geometria real desenhada no mapa.
 - Camadas reais: Edificações e Nomes/Rótulos (alternáveis) + filtro de vias
-  por classe (rodovias, primárias… rurais). A câmera é 3D perspectiva própria:
-  pitch contínuo 0°–60° (botão 3D alterna 0°/45°) e rotação via giro do
-  trackpad; pitch/bearing são transitórios. Vias, ferrovias e rotas são
-  suavizadas com spline que preserva cruzamentos. Extrusão usa `height`
+  por classe (rodovias, primárias… rurais). A câmera é 3D perspectiva
+  própria: pitch contínuo 0°–60° (botão 3D alterna 0°/45°) e rotação via
+  giro do trackpad; pitch/bearing são transitórios. Vias, ferrovias e rotas
+  são suavizadas com spline que preserva cruzamentos. Larguras de via
+  escalam por classe e zoom em rampas contínuas, e a visão regional aplica
+  orçamento de rótulos por prioridade (ADR-0006). Extrusão usa `height`
   numérico real do OSM quando existe; sem altura real, o motor aplica alturas
   estimadas determinísticas (só no render, dado intacto) — ver ADR-0005.
   `building:levels` nunca vira altura.
