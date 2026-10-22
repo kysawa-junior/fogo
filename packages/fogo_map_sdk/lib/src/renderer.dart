@@ -11,6 +11,26 @@ import 'overlays.dart';
 import 'road_geometry.dart';
 import 'style.dart';
 
+/// Display-only estimated height in metres for a building without a real OSM
+/// `height`: area band + stable FNV-1a jitter (ADR-0005). The renderer
+/// delegates here, so this pure function is the single estimate definition.
+@visibleForTesting
+double fogoEstimatedHeightMeters(List<double> coordinates, double areaM2) {
+  final double base;
+  if (areaM2 < 90) {
+    base = 4.5;
+  } else if (areaM2 < 350) {
+    base = 7.5;
+  } else if (areaM2 < 1500) {
+    base = 12;
+  } else if (areaM2 < 6000) {
+    base = 21;
+  } else {
+    base = 30;
+  }
+  return base + fogoHeightJitter(coordinates) * 4;
+}
+
 /// Stable FNV-1a jitter for display-only building height estimates.
 ///
 /// `Object.hashAll` is randomized per VM process, which would change a
@@ -398,7 +418,10 @@ class FogoMapPainter extends CustomPainter {
   }
 
   /// Deterministic display-only height, banded by footprint area with a
-  /// stable jitter. Cell data stays untouched; see ADR-0005.
+  /// stable jitter. Cell data stays untouched; see ADR-0005. The height
+  /// definition itself lives in the shared pure function
+  /// [fogoEstimatedHeightMeters]; this wrapper only measures the footprint
+  /// and converts metres to pixels.
   double _estimatedHeightPx(FogoMapArea building, List<Offset> ground) {
     final double cosLat = math.cos(camera.center.latitude * math.pi / 180);
     final double s = _transform.scale;
@@ -407,22 +430,9 @@ class FogoMapPainter extends CustomPainter {
       sum += ground[i].dx * ground[i + 1].dy - ground[i + 1].dx * ground[i].dy;
     }
     final double areaM2 = (sum.abs() * 0.5) * cosLat * cosLat / (s * s);
-    // Stable seed wired from the renderer path (see fogoHeightJitter):
-    // per-process hash randomization must not reach the extrusion heights.
-    final double jitter = fogoHeightJitter(building.coordinates);
-    final double base;
-    if (areaM2 < 90) {
-      base = 4.5;
-    } else if (areaM2 < 350) {
-      base = 7.5;
-    } else if (areaM2 < 1500) {
-      base = 12;
-    } else if (areaM2 < 6000) {
-      base = 21;
-    } else {
-      base = 30;
-    }
-    return _transform.heightToPixels(base + jitter * 4);
+    return _transform.heightToPixels(
+      fogoEstimatedHeightMeters(building.coordinates, areaM2),
+    );
   }
 
   void _drawBuilding(

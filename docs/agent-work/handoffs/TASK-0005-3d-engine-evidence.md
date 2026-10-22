@@ -143,3 +143,37 @@ Fixed in this cycle:
 Post-cycle-2 checks (2026-10-22): SDK `flutter analyze` clean + **43/43**;
 root `flutter analyze` clean + **73/73**; `dart format` clean;
 `flutter build linux --debug` PASS.
+
+## Revision cycle 3 (2026-10-22, post-audit)
+
+Auditor cycle-3 verdict: `REVISION_REQUIRED`, escalating to BLOCKED under the
+three-cycle rule. The production fix itself was confirmed: `_estimatedHeightPx`
+calls the stable seed, cross-process determinism reproduced, R2/R3 intact.
+
+Two new findings, both process failures on my side:
+
+- **F1** — `estimate_clip_test.dart` was committed unformatted (the format
+  output had been redirected to `/dev/null` during the fix, hiding the
+  change). Fixed: format applied; `dart format --set-exit-if-changed` now
+  exits 0 over all 97 files.
+- **F2** — the wired-path pixel test claimed more than it can prove: the full
+  jitter domain moves the roof row only ~1.2 px at this geometry, inside the
+  2 px assertion window, so no seed regression could fail it (auditor
+  reproduced 10/10 passes with the old hash restored). The evidence claim
+  ("overwhelming majority of runs") was likewise false.
+
+Fixes in this cycle:
+
+- The estimate definition now lives in the shared pure function
+  `fogoEstimatedHeightMeters` (area band + FNV-1a seed); the renderer
+  delegates to it in a one-line call, and a golden test pins that function
+  against an independent implementation of the ADR-0005 specification
+  across all band boundaries — this is the seed guard.
+- The pixel integration test is renamed and documented for what it actually
+  guards: the renderer's band/flag/wiring path (roof lands where the shared
+  function says; `estimateBuildingHeights: false` returns the roof to the
+  ground plane).
+
+Post-cycle-3 checks (2026-10-22): `dart format` exit 0 (97 files, 0 changed);
+SDK `flutter analyze` clean + **44/44**; root `flutter analyze` clean +
+**73/73**; `flutter build linux --debug` PASS.

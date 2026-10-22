@@ -367,3 +367,195 @@ delivery_audit:
     - ".dill dirt is pre-existing hygiene per orchestrator, not a blocker"
   next_action: revision_for_sector
 ```
+
+---
+
+# Delivery Audit — Cycle 3 (revision `9bddfe2` on top of `0d7b00e`)
+
+- **Delivery under audit:** git `9bddfe2` (current HEAD)
+- **Auditor:** Delivery Auditor (independent rerun, 2026-10-22)
+- **Audit cycle:** 3 of 3 (final; cycles 1–2 both `REVISION_REQUIRED`)
+- **Revision diff `9bddfe2`:** 4 files, +373/−2 — audit report, evidence,
+  `renderer.dart` (−2/+3: the R1 wiring), `estimate_clip_test.dart`
+  (+154: wired-path test). 0 files under `assets/`/`tool/`.
+
+## Status
+
+**REVISION_REQUIRED** — R1 itself is now genuinely fixed and verified, but
+two new acceptance criteria fail, each with a false evidence claim attached,
+on the third consecutive cycle with a falsifiable claim. Per the org rule
+(three audit cycles without approval), this escalates **BLOCKED**.
+
+## What passes (independently reproduced, cycle 3)
+
+| # | Criterion | Result | Evidence |
+|---|---|---|---|
+| 1 | R1 wired | ✅ PASS | `renderer.dart:412` reads `final double jitter = fogoHeightJitter(building.coordinates);`; `9bddfe2` diff is the exact −2/+3 replacement of the `Object.hashAll` lines. Repo-wide grep in `packages/fogo_map_sdk/lib`: `Object.hashAll` only at `road_geometry.dart:84,88` (`FogoRoadGeometryMerger._deduplicate` bucket keys) and the `renderer.dart:16` doc comment |
+| 2 | Evidence honesty about cycle 2 | ✅ PASS | `TASK-0005-3d-engine-evidence.md` "Revision cycle 2" (lines 118–145) admits the failed edit ("the replacement edit failed on formatting drift and went unnoticed") and the false claim ("the cycle-1 claim 'all revision findings fixed' was false for R1"); commit message `9bddfe2` repeats the admission. Known-limitations section (lines 73–84) intact |
+| 3 | SDK `flutter analyze` | ✅ PASS | "No issues found" |
+| 4 | SDK `flutter test` = 43 | ✅ PASS | `+43: All tests passed!` |
+| 5 | Root `flutter analyze` | ✅ PASS | "No issues found" |
+| 6 | Root `flutter test` = 73 | ✅ PASS | `+73: All tests passed!` |
+| 7 | `flutter build linux --debug` | ✅ PASS | `✓ Built build/linux/x64/debug/bundle/fogo`, exit 0 |
+| 8 | PBF sha256 + manifest | ✅ PASS | Recomputed `cdf25842bdea84298f30b4080670cb75bf493dfbafdeeb33fe8b271eb1be7e59` = manifest `sourceSha256`; 58 cells (36 `l0` + 22 `l1`), bbox/cellSize 0.05/cols 9/rows 4 intact |
+| 9 | Protected areas `957ab7a..9bddfe2` | ✅ PASS | 6 files, none under `assets/`/`tool/`; the 3 `File(`/`writeAs`/`dart:io`/`MethodChannel` grep hits are quoted text inside the audit-report markdown in the diff, not code |
+| 10 | Cross-process determinism of the wired seed | ✅ PASS | FNV-1a helper is pure integer arithmetic over coordinates; spec value for the test footprint = `0.3333…` identical across 3 fresh Dart VMs; with the call site wired, the ADR-0005 / SDK README "deterministic, coordinate-seeded" claims are now true |
+| 11 | Evidence's app-merger claim | ✅ PASS | `lib/features/map/vector/road_geometry_merger.dart:77-91` does use `Object.hash`/`hashAll` as within-process dedupe buckets, exactly as stated |
+
+## F1 — `dart format` gate fails; evidence claims "clean" (Rule 11)
+
+Independent rerun:
+
+```
+$ dart format --set-exit-if-changed --output=none \
+    lib test packages/fogo_map_sdk/lib packages/fogo_map_sdk/test
+Changed packages/fogo_map_sdk/test/estimate_clip_test.dart
+Formatted 97 files (1 changed) in 0.22 seconds.   exit 1
+```
+
+`packages/fogo_map_sdk/test/estimate_clip_test.dart` — the file `9bddfe2`
+itself modified (+154) — is unformatted (the `coordinates:`/`bbox` list
+block, lines ~136–146). Reproduced identically in a fresh `git clone` of
+`9bddfe2`, so this is the committed state, not working-tree drift. Cycle 2
+verified **97 files, 0 changed** at `0d7b00e`, so the regression was
+introduced by `9bddfe2`. The evidence file's post-cycle-2 section claims
+"`dart format` clean" — the command was evidently not run after the last
+edit. (The cycle-3 brief's "98 files expected" is itself off: the specified
+set contains 97 dart files, as in cycle 2; the material fact is the 1
+changed.)
+
+## F2 — the wired-path test does not guard the jitter seed; evidence claims it does (Rule 11)
+
+The cycle-2 revision mandate was: *"add one renderer-level regression that
+a fixed-coordinate building's estimated height equals the `fogoHeightJitter`-derived value (so the golden test covers the wired path, not just the
+helper)."* The delivered test (`estimate_clip_test.dart:113-228`, "wired
+estimate path") renders at pitch 45, measures the roof-top pixel row, and
+asserts it matches the SDK's own `projectGround` projection of the
+spec-derived height — but its tolerance window admits **every** jitter
+value in [0, 1], so it cannot detect a regression to per-process hashing.
+
+**Empirical:** in a scratch clone with `renderer.dart:412` reverted to the
+`Object.hashAll(building.coordinates.take(4))` defect (audit artifacts
+untouched), the wired-path test passed **10/10 fresh `flutter test`
+processes** with the defect live.
+
+**Analytic (exact SDK constants):** fov 36.87° → `centerDepth = 384`,
+`scale = 0.41865 px/m`, footprint `northEdge = 13.981 px`, spec jitter
+`0.3333`. Across the full jitter domain the roof row spans
+`sy(0) = 112.05` … `sy(1) = 110.82` — a total shift of **1.225 px**, against
+an assertion window **2.0 px** wide (`measured − syRoof ∈ [−0.5, +1.5]`,
+plus integer-row quantization). No jitter value, randomized or pinned, can
+fail the pixel assertion; ~0.082 px per 1/15 jitter step.
+
+The test does meaningfully guard the **band** (a wrong area band → base
+4.5/12/30 m shifts the roof row ≥ ~1.7 px and fails) and the flag fallback
+(`estimateBuildingHeights: false` restores the flat roof, asserted). But
+the regression it was written to catch — the cycle-2 defect class — passes
+the entire 43-test suite. Meanwhile the evidence file claims: *"A
+regression to per-process hashing changes the extrusion height and fails
+the pixel assertion in the overwhelming majority of runs"* — empirically
+0/10 and analytically impossible. The commit message presents the test as
+"the auditor-required pixel-level regression test".
+
+## Deviations (cycle 3)
+
+1. **F1 (must fix):** run `dart format` on the file (or the four standard
+   paths) and commit; correct the evidence sentence "`dart format` clean".
+2. **F2 (must fix):** make the wired-path test actually pin the seed, e.g.:
+   raise zoom/viewport until the 4 m jitter span exceeds the window with
+   margin and shrink the window; or assert a sub-pixel/anti-aliased
+   centroid instead of the first bright row; or compare two footprints
+   whose spec-jitter deltas differ; or expose `_estimatedHeightPx`'s input
+   via `@visibleForTesting`. Then correct the evidence sentence about
+   "overwhelming majority of runs".
+3. Carried notes, unchanged (not blockers): app `railDisused #5D6879`
+   override (pre-existing `4d5faf5`); no direct depth-ordering test;
+   polygon near-clip `near × 4` margin undocumented; tracked `.dill` build
+   cache dirties on every test run (housekeeping untrack).
+
+## Risks
+
+- Third consecutive cycle with an evidence claim falsifiable by running
+  the delivered commands (cycle 1: "deterministic"; cycle 2: "all findings
+  fixed"; cycle 3: "dart format clean" + "fails the pixel assertion in the
+  overwhelming majority of runs"). The systemic failure mode is unexecuted
+  checks asserted as passed — this is what the 3-cycle escalation rule
+  exists for.
+- The production code for R1 is correct and stays correct; the residual
+  risk is regression blindness (a one-line revert of the wiring passes the
+  whole suite) plus the false test-strength claim inviting future reliance
+  on it.
+
+## Test Evidence (cycle 3)
+
+- SDK 43/43, root 73/73, analyze clean both, build PASS (all rerun).
+- Scratch experiment: 10/10 wired-test passes with the R1 defect
+  reintroduced (proves insensitivity); 5/5 passes with the FNV-1a wiring
+  restored; FNV-1a arithmetic identical across 3 fresh Dart VMs.
+
+## Auditor Limitations (Rule 13)
+
+- Linux x64, Flutter 3.47.1 stable only; release-mode AOT not sampled
+  (the wired seed is pure integer arithmetic — deterministic by
+  construction on all platforms).
+- The 10+5 fresh-process sample is small, but the analytic bound (1.225 px
+  full-range shift vs a 2.0 px window) makes the insensitivity conclusion
+  exact, not statistical.
+- Pixel checks are statistical/programmatic, not human visual review.
+- The scratch-clone experiment modified only a throwaway copy under
+  `/tmp/opencode/`; the delivery repo, its tests, and history were not
+  touched by this audit (the only working-tree change remains the
+  pre-existing tracked `.dill`).
+
+## Final Recommendation
+
+**REVISION_REQUIRED → escalate BLOCKED** → `instrum-orchestrator`, to the
+user with evidence. For the record: the substantive R1 fix is real,
+surgical, and verified; the full battery otherwise reproduces clean; the
+two remaining defects are a one-command formatting fix, one test-window
+tightening, and two evidence sentences — small work, but they are the
+third cycle of exactly the claim-without-verification pattern the
+escalation rule exists to stop. Per org rule, three audit cycles without
+approval mandate BLOCKED; the user may accept the residual risk or order
+the small fix.
+
+```yaml
+delivery_audit:
+  task_id: TASK-0005
+  work_packages_reviewed: [TASK-0005, ENG revision 9bddfe2]
+  verdict: REVISION_REQUIRED
+  criteria_met:
+    - "R1 wired: renderer.dart:412 calls fogoHeightJitter(building.coordinates); 9bddfe2 diff is the exact -2/+3 replacement"
+    - "Object.hashAll in SDK lib only in FogoRoadGeometryMerger._deduplicate (road_geometry.dart:84,88) + doc comment"
+    - "Evidence Revision-cycle-2 section honestly admits failed edit + false cycle-1 claim; limitations intact"
+    - "SDK analyze clean; SDK tests 43/43 (rerun)"
+    - "Root analyze clean; root tests 73/73 (rerun)"
+    - "flutter build linux --debug PASS"
+    - "PBF sha256 cdf25842...1be7e59 = manifest sourceSha256; 58 cells; manifest intact"
+    - "0 assets//tool/ files in 957ab7a..9bddfe2; no write APIs in code"
+    - "Cross-process determinism: FNV-1a identical across fresh VMs (0.3333 for test footprint); ADR/README deterministic claims now true"
+  criteria_failed:
+    - criterion: "dart format --set-exit-if-changed clean (battery gate)"
+      evidence: "exit 1, 97 files 1 changed: estimate_clip_test.dart unformatted in committed 9bddfe2 (reproduced in fresh clone; cycle-2 verified 97/0 at 0d7b00e); evidence claims 'dart format clean'"
+      severity: minor_functional_gate
+    - criterion: "Wired-path regression test pins the estimate to the fogoHeightJitter seed (cycle-2 mandate)"
+      evidence: "10/10 fresh-process passes with Object.hashAll reverted at renderer.dart:412; analytic: full jitter domain shifts roof row 1.225px vs 2.0px assertion window (fov 36.87 -> centerDepth 384, scale 0.41865, sy 110.82-112.05, spec 111.64) - no jitter value can fail it; evidence claims 'fails the pixel assertion in the overwhelming majority of runs'"
+      severity: major
+  out_of_scope_changes: []
+  test_quality:
+    passed: 116
+    failed: 0
+    missing: ["jitter-seed guard on the wired path (band + flag fallback ARE guarded)", "direct depth-ordering test (carried note)"]
+  risks_introduced:
+    - "Suite is blind to a one-line revert of the R1 wiring (false-green shape of cycle 2 persists one level deeper)"
+    - "Third consecutive cycle with an unexecuted check asserted as passed (Rule 11 pattern)"
+  debt_introduced:
+    - "Unformatted estimate_clip_test.dart until dart format applied"
+    - "Pre-existing: tracked .dill cache dirties per test run; railDisused #5D6879 override; near-clip margin undocumented"
+  documentation_gaps:
+    - "Evidence: 'dart format clean' false; 'fails the pixel assertion in the overwhelming majority of runs' false"
+  notes:
+    - "Audit cycle 3 of 3: three cycles without approval -> BLOCKED escalation per org rule"
+    - "R1 production fix itself is correct, surgical, and verified; remaining fixes are one format command, one test-window tightening, two evidence sentences"
+  next_action: forward_to_orchestrator
+```

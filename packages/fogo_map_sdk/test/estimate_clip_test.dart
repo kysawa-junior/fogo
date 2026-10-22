@@ -20,6 +20,24 @@ double _specJitter(List<double> coordinates) {
   return ((seed & 0xF) / 15).clamp(0, 1).toDouble();
 }
 
+/// Independent implementation of the full estimate specification
+/// (area band + FNV-1a seed) from ADR-0005.
+double _specEstimated(List<double> coordinates, double areaM2) {
+  double base;
+  if (areaM2 < 90) {
+    base = 4.5;
+  } else if (areaM2 < 350) {
+    base = 7.5;
+  } else if (areaM2 < 1500) {
+    base = 12;
+  } else if (areaM2 < 6000) {
+    base = 21;
+  } else {
+    base = 30;
+  }
+  return base + _specJitter(coordinates) * 4;
+}
+
 void main() {
   group('height estimate jitter', () {
     test('matches the ADR-0005 FNV-1a specification exactly', () {
@@ -45,6 +63,37 @@ void main() {
         fogoHeightJitter(coordinates),
         fogoHeightJitter([...coordinates.take(2), -22.2224, -49.8043]),
       );
+    });
+
+    test('estimated height matches the ADR-0005 specification', () {
+      const List<double> coordinates = [
+        -0.0003,
+        -0.0003,
+        -0.0003,
+        0.0003,
+        0.0003,
+        0.0003,
+        0.0003,
+        -0.0003,
+      ];
+      for (final double areaM2 in [
+        50.0,
+        89.99,
+        90.0,
+        349.99,
+        350.0,
+        1499.99,
+        1500.0,
+        5999.99,
+        6000.0,
+        12000.0,
+      ]) {
+        expect(
+          fogoEstimatedHeightMeters(coordinates, areaM2),
+          _specEstimated(coordinates, areaM2),
+          reason: 'area $areaM2',
+        );
+      }
     });
   });
 
@@ -111,7 +160,12 @@ void main() {
   });
 
   group('wired estimate path', () {
-    test('renderer extrusion height derives from the stable seed', () async {
+    test('renderer extrusion consumes the shared estimate function', () async {
+      // Integration guard for the renderer's band/flag/wiring path: the
+      // rendered roof must land where the shared pure function
+      // (golden-tested above against an independent spec) says. Sub-pixel
+      // jitter steps are pinned by that golden, not by this pixel row —
+      // a pixel assertion cannot resolve them at this geometry.
       const Size size = Size(256, 256);
       const FogoCameraState camera = FogoCameraState(
         center: FogoCoordinate(0, 0),
@@ -134,16 +188,20 @@ void main() {
       final FogoMapArea flat = FogoMapArea(
         kind: FogoAreaKind.water,
         coordinates: [
-          -0.0003, -0.0003,
-          -0.0003, 0.0003,
-          0.0003, 0.0003,
-          0.0003, -0.0003,
+          -0.0003,
+          -0.0003,
+          -0.0003,
+          0.0003,
+          0.0003,
+          0.0003,
+          0.0003,
+          -0.0003,
         ],
         bbox: [-0.0003, -0.0003, 0.0003, 0.0003],
       );
 
-      // Expected height computed independently from the ADR-0005 spec:
-      // area band from the ground footprint + FNV-1a jitter.
+      // Expected height from the shared estimate function the renderer
+      // delegates to; its band + seed are pinned by the unit golden above.
       final List<Offset> ground = [
         for (int i = 0; i < flat.coordinates.length; i += 2)
           transform.groundOffset(
@@ -153,16 +211,14 @@ void main() {
       double sum = 0;
       for (int i = 0; i < ground.length - 1; i++) {
         sum +=
-            ground[i].dx * ground[i + 1].dy -
-            ground[i + 1].dx * ground[i].dy;
+            ground[i].dx * ground[i + 1].dy - ground[i + 1].dx * ground[i].dy;
       }
       final double areaM2 =
           (sum.abs() * 0.5) / (transform.scale * transform.scale);
       expect(areaM2, greaterThan(1500), reason: 'band precondition');
       expect(areaM2, lessThan(6000), reason: 'band precondition');
-      const double base = 21.0;
       final double expectedPx = transform.heightToPixels(
-        base + _specJitter(flat.coordinates) * 4,
+        fogoEstimatedHeightMeters(flat.coordinates, areaM2),
       );
       final double northEdge = transform
           .groundOffset(const FogoCoordinate(0.0003, 0))
@@ -196,7 +252,7 @@ void main() {
       expect(
         measuredRoof - syRoof!,
         inInclusiveRange(-0.5, 1.5),
-        reason: 'roof top must match the spec-seeded height',
+        reason: 'roof top must match the shared-function height',
       );
 
       final FogoMapStyle realOnly = FogoMapStyle(
@@ -255,8 +311,9 @@ Future<Uint8List> _paint({
   ).paint(canvas, const Size(256, 256));
   final ui.Picture picture = recorder.endRecording();
   final ui.Image image = await picture.toImage(256, 256);
-  final ByteData bytes =
-      (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+  final ByteData bytes = (await image.toByteData(
+    format: ui.ImageByteFormat.rawRgba,
+  ))!;
   image.dispose();
   picture.dispose();
   return bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes);
