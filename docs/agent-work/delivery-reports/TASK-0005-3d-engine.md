@@ -6,6 +6,9 @@
 - **Auditor:** Delivery Auditor (independent rerun, 2026-10-22)
 - **Audit cycle:** 1
 
+> **Superseded by the cycle-2 audit below** — the revision commit `0d7b00e`
+> fixed R2 and R3 but did **not** fix R1. See "Delivery Audit — Cycle 2".
+
 ## Status
 
 **REVISION_REQUIRED** — routed to the engineering sector; the fix is small and
@@ -180,3 +183,187 @@ criteria reproduce cleanly, and the 3D engine itself is sound; but the
 READMEs is falsifiable on the delivered platform (R1), the SDK README update
 never landed in the commit (R2), and one ADR consequence clause is unmet and
 undeclared (R3). All three fixes are small; expect approval on cycle 2.
+
+---
+
+# Delivery Audit — Cycle 2 (revision `0d7b00e` on top of `957ab7a`)
+
+- **Delivery under audit:** git `0d7b00e` on top of `957ab7a`
+- **Auditor:** Delivery Auditor (independent rerun, 2026-10-22)
+- **Audit cycle:** 2 (revision cycle 1)
+- **Revision diff:** 6 files, +357/−10 — docs ×2, `layers_panel.dart`,
+  SDK `README.md`, SDK `renderer.dart`, SDK `estimate_clip_test.dart`.
+  0 files under `assets/`/`tool/`; no write APIs / `dart:io` / channels
+  in the diff. Working tree == HEAD except the pre-existing tracked
+  `.dill` cache (see hygiene note).
+
+## Status
+
+**REVISION_REQUIRED** — R2 and R3 are fixed; **R1 is not**. The FNV-1a
+helper was added to `renderer.dart` but never wired into the renderer: the
+estimate call site still seeds jitter with `Object.hashAll`, so estimated
+heights still change across app restarts, and the golden test passes
+against an orphan helper — a false green. This is audit cycle 2 of 3.
+
+## Requirements Validation (rerun of full battery)
+
+| # | Criterion | Result | Evidence (independently reproduced) |
+|---|---|---|---|
+| 1 | SDK `flutter analyze` | ✅ PASS | Rerun: "No issues found" |
+| 2 | SDK `flutter test` = 42 | ✅ PASS | Rerun: `+42: All tests passed!` (38 + 4 new) |
+| 3 | Root `flutter analyze` | ✅ PASS | Rerun: "No issues found" |
+| 4 | Root `flutter test` = 73 | ✅ PASS | Rerun: `+73: All tests passed!` |
+| 5 | `dart format --set-exit-if-changed` | ✅ PASS | 97 files, 0 changed, exit 0 — matches the corrected evidence count |
+| 6 | `flutter build linux --debug` | ✅ PASS | Built `build/linux/x64/debug/bundle/fogo` |
+| 7 | PBF sha256 unchanged + manifest match | ✅ PASS | Recomputed `cdf25842bdea84298f30b4080670cb75bf493dfbafdeeb33fe8b271eb1be7e59` = manifest `sourceSha256` `cdf25842…1be7e59` |
+| 8 | Protected data untouched by `957ab7a..0d7b00e` | ✅ PASS | 0 files under `assets/`/`tool/` in the revision diff; no `File(`/`writeAs`/`.write`/`dart:io`/`MethodChannel` in it; 58 cells still present |
+| 9 | R2 fixed: SDK README v3 committed | ✅ PASS | `git show 0d7b00e --stat` includes `packages/fogo_map_sdk/README.md` (+19/−8); content matches implementation (continuous pitch 0–60, bearing trackpad twist, near-plane clipping, endpoint-preserving spline, estimates flag default true, `building:levels` never used); `git status` shows no uncommitted SDK README |
+| 10 | R3 fixed: layers panel labels estimates | ✅ PASS | `layers_panel.dart:72-78` — always-visible panel footer caption: "Em vista 3D, edifícios sem altura real do OSM usam alturas estimadas apenas para visualização (ADR-0005)." Meets the ADR-0005 consequence clause (label in docs **and** layers panel; SDK flag still provides the real-heights-only fallback) |
+| 11 | New near-plane polygon clipping tests | ✅ PASS | `estimate_clip_test.dart:48-107`: straddling quad at pitch 60 clips non-null (≥3 vertices); fully-behind polygon returns null; clipped vertices finite (< 1e6) across spans 0.01–0.6, pitch 55, bearing 40. Addresses cycle-1 "should" item (depth-ordering direct test still missing — note, not blocker) |
+| 12 | R1 fixed: stable cross-process estimate seed | ❌ **FAIL** | See below — the defect is **still live** in `0d7b00e` |
+| 13 | Declared limitations accurate | ✅ PASS | All four remain declared in the evidence file (lines 73–84): bearing trackpad-only; walls behind near-plane skipped; screen-space label collision; estimates visualization-only |
+
+## R1 — not fixed: helper added, call site untouched (audit cycle 2)
+
+The revision added a correct FNV-1a helper as a top-level function in
+`renderer.dart:14-31` (`fogoHeightJitter`, `@visibleForTesting`, integer-only
+arithmetic, no `hashCode`) — **but the renderer never calls it**. The estimate
+path still reads, at `renderer.dart:410-411`:
+
+```dart
+final int hash = Object.hashAll(building.coordinates.take(4));
+final double jitter = ((hash & 0xF) / 15).clamp(0, 1).toDouble();
+```
+
+Byte-identical to the `957ab7a` defect line (`renderer.dart:393` there; only
+the +17-line helper insertion shifted it down). Repo-wide grep:
+`fogoHeightJitter` is referenced **only** by `test/estimate_clip_test.dart` —
+dead code in production.
+
+Independently reproduced (fresh Dart processes, Flutter 3.47.1 Dart SDK,
+same coordinates `[-22.2172, -49.95, -22.2171, -49.9501]`):
+
+```
+jitter = 0.733… / 0.2 / 0.4 / 0.2 / 0.867   (5 processes, same input)
+```
+
+The cross-process nondeterminism ADR-0005 forbids ("deterministic,
+coordinate-seeded display-only estimates") is therefore still falsifiable on
+the delivered commit.
+
+Consequences that make this a blocker rather than a note:
+
+1. **False green:** the golden test pins the orphan helper to the spec, not
+   the renderer's actual jitter source; 42/42 SDK tests pass while the defect
+   persists. The wired path (`_estimatedHeightPx`) has no test tying it to
+   `fogoHeightJitter`.
+2. **Evidence now overstates the fix (Rule 11):** the evidence file's
+   revision section (lines 96–104) says "All revision findings fixed …
+   Replaced with a stable FNV-1a integer seed over coordinate values", and
+   the commit message says "fix: stable height-estimate seed". The delivered
+   code falsifies both claims. ADR-0005, both READMEs, and `style.dart` still
+   promise deterministic estimates — now contradicted by HEAD, exactly as in
+   cycle 1.
+
+## Deviations (cycle 2)
+
+1. **R1 unfixed (blocker, must fix):** wire the helper in — replace
+   `renderer.dart:410-411` with `final double jitter = fogoHeightJitter(building.coordinates);`
+   (the helper internally consumes `take(8)` and skips non-finite values), and
+   add one renderer-level regression that a fixed-coordinate building's
+   estimated height equals the `fogoHeightJitter`-derived value (so the golden
+   test covers the wired path, not just the helper). Update the evidence
+   revision section and commit message to describe the fix actually landed.
+2. **Pre-existing hygiene (not a blocker, per orchestrator note):**
+   `packages/fogo_map_sdk/build/test_cache/*.dill.track.dill` is a tracked
+   build artifact from the user's initial commit `4d5faf5` that dirties on
+   every test run (currently the only `git status` entry). Untrack in a
+   housekeeping commit.
+3. Carried notes, unchanged from cycle 1 (not blockers): app overrides SDK
+   `railDisused` with `#5D6879` (pre-existing, `4d5faf5`); no direct
+   depth-ordering test; polygon near-clip `near × 4` margin undocumented.
+
+## Risks
+
+- Unchanged from cycle 1 (painter's-algorithm sorting at high pitch; polygon
+  clip margin) — accepted by ADR, declared, not introduced by the revision.
+- New: two consecutive cycles claiming "deterministic estimates" while the
+  property is absent means the claim now has no evidentiary basis in either
+  the code or the test suite. Third failed audit cycle escalates BLOCKED
+  per org rules.
+
+## Test Evidence (cycle 2)
+
+- SDK: 42/42 passed. Root: 73/73 passed. Total 115, 0 failed. Analyze clean
+  in both. Format clean (97 files). Linux debug build PASS.
+- The 4 new tests themselves are well-constructed (independent FNV-1a
+  oracle; direct clipping coverage) — their green result just does not
+  cover the production defect (R1).
+- Missing: a test that exercises `_estimatedHeightPx` (or any renderer-level
+  estimate) against the golden spec.
+
+## Auditor Limitations (Rule 13)
+
+- Same as cycle 1: Linux x64 + Flutter 3.47.1 stable only; pixel evidence
+  statistical (not re-run this cycle — rendering pipeline unchanged by
+  the revision diff, which touches docs, one caption, one comment-level
+  SDK change, and tests only); cross-process hash behavior verified on the
+  VM bundled with this Flutter install (hash randomization is a Dart VM
+  policy, not debug-only).
+- The working tree (== HEAD except the pre-existing tracked `.dill`) was
+  audited; all conclusions verified against `git show 0d7b00e:…` blobs as
+  well as the working tree.
+
+## Final Recommendation
+
+**REVISION_REQUIRED** → `instrum-orchestrator`, routed to the engineering
+sector. R2 ✅, R3 ✅, clipping tests ✅, full battery reproduces clean
+(42/42, 73/73, format 97/0, build PASS, PBF sha unchanged, protected areas
+untouched). One blocker remains: R1 — the stable seed exists but is dead
+code; the renderer still uses the process-randomized `Object.hashAll`, the
+documented "all findings fixed" claim is falsifiable, and the golden test
+is a false green. The actual fix is a one-line call-site change plus a
+wired-path regression test and a corrected evidence section. Audit cycle 3
+of 3: another failed cycle on this finding escalates **BLOCKED**.
+
+```yaml
+delivery_audit:
+  task_id: TASK-0005
+  work_packages_reviewed: [TASK-0005, ENG revision 0d7b00e]
+  verdict: REVISION_REQUIRED
+  criteria_met:
+    - "SDK analyze clean (rerun 2026-10-22)"
+    - "SDK tests 42/42 (rerun, +42: All tests passed)"
+    - "Root analyze clean (rerun)"
+    - "Root tests 73/73 (rerun)"
+    - "dart format 97 files, 0 changed, exit 0"
+    - "flutter build linux --debug PASS (bundle/fogo)"
+    - "PBF sha256 cdf25842…1be7e59 recomputed = manifest sourceSha256"
+    - "0 assets/ or tool/ files in 957ab7a..0d7b00e; no write APIs; 58 cells intact"
+    - "R2 fixed: SDK README v3 committed in 0d7b00e (+19/-8), content matches code"
+    - "R3 fixed: layers_panel.dart:72-78 always-visible caption labels display-only estimates (ADR-0005)"
+    - "Near-plane polygon clipping direct tests present and passing (estimate_clip_test.dart:48-107)"
+    - "All four known limitations still declared in evidence file lines 73-84"
+  criteria_failed:
+    - criterion: "R1: deterministic cross-process estimate seed (ADR-0005)"
+      evidence: "renderer.dart:410-411 still Object.hashAll(building.coordinates.take(4)), byte-identical to 957ab7a:393; fogoHeightJitter referenced only by tests (dead code); 5 fresh Dart processes same coords -> jitter 0.733/0.2/0.4/0.2/0.867; evidence file lines 96-104 claim 'All revision findings fixed' which the code falsifies"
+      severity: blocker
+  out_of_scope_changes: []
+  test_quality:
+    passed: 115
+    failed: 0
+    missing: ["renderer-level test tying _estimatedHeightPx to fogoHeightJitter golden spec", "direct depth-ordering (painter's sort) test (note, carried)"]
+  risks_introduced:
+    - "False-green coverage: golden test validates an unwired helper while production defect persists"
+    - "Evidence file + commit message now document a fix absent from the code (Rule 11)"
+  debt_introduced:
+    - "Dead @visibleForTesting helper until wired (resolves with the R1 fix)"
+    - "Pre-existing (4d5faf5): tracked build cache .dill dirties on every test run - housekeeping untrack"
+  documentation_gaps:
+    - "evidence TASK-0005-3d-engine-evidence.md revision section overstates R1 fix; commit message 0d7b00e same"
+  notes:
+    - "Audit cycle 2 of 3; next failed cycle on R1 escalates BLOCKED"
+    - "Full battery (analyze/test/format/build/sha/protected) reproduces clean"
+    - ".dill dirt is pre-existing hygiene per orchestrator, not a blocker"
+  next_action: revision_for_sector
+```

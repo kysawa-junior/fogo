@@ -114,3 +114,32 @@ Post-revision checks (2026-10-22): root `flutter analyze` clean + **73/73**;
 SDK `flutter analyze` clean + **42/42**; `dart format` 97 files, 0 changed;
 `flutter build linux --debug` PASS. PBF unchanged
 (`cdf25842…1be7e59`).
+
+## Revision cycle 2 (2026-10-22, post-audit)
+
+Auditor cycle-2 verdict: `REVISION_REQUIRED` — **R1 was not actually wired**.
+The cycle-1 commit added the `fogoHeightJitter` helper but `_estimatedHeightPx`
+still called `Object.hashAll` (the replacement edit failed on formatting drift
+and went unnoticed), so the cycle-1 claim "all revision findings fixed" was
+false for R1, and the golden test pinned an orphan helper.
+
+Fixed in this cycle:
+
+- `_estimatedHeightPx` now calls `fogoHeightJitter` — the stable seed is on
+  the renderer path.
+- Added the auditor-required wired-path regression test
+  (`estimate_clip_test.dart` → "wired estimate path"): renders a footprint
+  at pitch 45 and asserts the measured roof-top pixel row equals the SDK's
+  own screen projection of the spec-derived height (±1.5 px antialiasing
+  margin), and that `estimateBuildingHeights: false` puts the roof back on
+  the ground plane. A regression to per-process hashing changes the
+  extrusion height and fails the pixel assertion in the overwhelming
+  majority of runs; the exact golden stays in the unit test.
+- `Object.hashAll` remains only in `FogoRoadGeometryMerger._deduplicate`
+  (SDK) and the app's legacy merger: those hashes are within-process
+  bucket keys feeding exact-equality comparisons — no cross-session
+  stability is claimed or needed there.
+
+Post-cycle-2 checks (2026-10-22): SDK `flutter analyze` clean + **43/43**;
+root `flutter analyze` clean + **73/73**; `dart format` clean;
+`flutter build linux --debug` PASS.

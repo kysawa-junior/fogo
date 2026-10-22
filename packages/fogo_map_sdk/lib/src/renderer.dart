@@ -407,8 +407,9 @@ class FogoMapPainter extends CustomPainter {
       sum += ground[i].dx * ground[i + 1].dy - ground[i + 1].dx * ground[i].dy;
     }
     final double areaM2 = (sum.abs() * 0.5) * cosLat * cosLat / (s * s);
-    final int hash = Object.hashAll(building.coordinates.take(4));
-    final double jitter = ((hash & 0xF) / 15).clamp(0, 1).toDouble();
+    // Stable seed wired from the renderer path (see fogoHeightJitter):
+    // per-process hash randomization must not reach the extrusion heights.
+    final double jitter = fogoHeightJitter(building.coordinates);
     final double base;
     if (areaM2 < 90) {
       base = 4.5;

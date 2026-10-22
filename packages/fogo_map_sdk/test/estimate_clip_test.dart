@@ -1,9 +1,12 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fogo_map_sdk/fogo_map_sdk.dart';
 import 'package:fogo_map_sdk/src/renderer.dart';
+import 'package:fogo_map_sdk/src/road_geometry.dart';
 
 /// Independent implementation of the FNV-1a seed specified in ADR-0005.
 /// The golden test asserts the SDK helper matches this specification
@@ -106,4 +109,155 @@ void main() {
       }
     });
   });
+
+  group('wired estimate path', () {
+    test('renderer extrusion height derives from the stable seed', () async {
+      const Size size = Size(256, 256);
+      const FogoCameraState camera = FogoCameraState(
+        center: FogoCoordinate(0, 0),
+        zoom: 16,
+        pitch: 45,
+      );
+      final FogoCameraTransform transform = FogoCameraTransform(camera, size);
+      final FogoMapStyle estimateStyle = FogoMapStyle(
+        background: const Color(0xFF101010),
+        building: const Color(0xFFDDDDDD),
+        showAreas: false,
+        showWaterLines: false,
+        showRail: false,
+        showRoads: false,
+        showBuildings: true,
+        showLabels: false,
+        showPois: false,
+        showAttribution: false,
+      );
+      final FogoMapArea flat = FogoMapArea(
+        kind: FogoAreaKind.water,
+        coordinates: [
+          -0.0003, -0.0003,
+          -0.0003, 0.0003,
+          0.0003, 0.0003,
+          0.0003, -0.0003,
+        ],
+        bbox: [-0.0003, -0.0003, 0.0003, 0.0003],
+      );
+
+      // Expected height computed independently from the ADR-0005 spec:
+      // area band from the ground footprint + FNV-1a jitter.
+      final List<Offset> ground = [
+        for (int i = 0; i < flat.coordinates.length; i += 2)
+          transform.groundOffset(
+            FogoCoordinate(flat.coordinates[i], flat.coordinates[i + 1]),
+          ),
+      ];
+      double sum = 0;
+      for (int i = 0; i < ground.length - 1; i++) {
+        sum +=
+            ground[i].dx * ground[i + 1].dy -
+            ground[i + 1].dx * ground[i].dy;
+      }
+      final double areaM2 =
+          (sum.abs() * 0.5) / (transform.scale * transform.scale);
+      expect(areaM2, greaterThan(1500), reason: 'band precondition');
+      expect(areaM2, lessThan(6000), reason: 'band precondition');
+      const double base = 21.0;
+      final double expectedPx = transform.heightToPixels(
+        base + _specJitter(flat.coordinates) * 4,
+      );
+      final double northEdge = transform
+          .groundOffset(const FogoCoordinate(0.0003, 0))
+          .dy;
+      final double? syRoof = transform
+          .projectGround(Offset(0, northEdge), expectedPx)
+          ?.dy;
+      final double? syFlat = transform
+          .projectGround(Offset(0, northEdge), 0)
+          ?.dy;
+      expect(syRoof, isNotNull);
+      expect(syFlat, isNotNull);
+
+      int firstRoofRow(Uint8List pixels) {
+        for (int y = 0; y < 256; y++) {
+          final int i = (y * 256 + 128) * 4;
+          if (pixels[i] >= 200 && pixels[i + 1] >= 200) {
+            return y;
+          }
+        }
+        return -1;
+      }
+
+      final Uint8List estimated = await _paint(
+        camera: camera,
+        style: estimateStyle,
+        data: FogoMapRenderData(buildings: [flat]),
+      );
+      final int measuredRoof = firstRoofRow(estimated);
+      expect(measuredRoof, greaterThan(0), reason: 'extrusion must render');
+      expect(
+        measuredRoof - syRoof!,
+        inInclusiveRange(-0.5, 1.5),
+        reason: 'roof top must match the spec-seeded height',
+      );
+
+      final FogoMapStyle realOnly = FogoMapStyle(
+        background: estimateStyle.background,
+        building: estimateStyle.building,
+        showAreas: false,
+        showWaterLines: false,
+        showRail: false,
+        showRoads: false,
+        showBuildings: true,
+        showLabels: false,
+        showPois: false,
+        showAttribution: false,
+        estimateBuildingHeights: false,
+      );
+      final Uint8List flatRendered = await _paint(
+        camera: camera,
+        style: realOnly,
+        data: FogoMapRenderData(buildings: [flat]),
+      );
+      final int measuredFlat = firstRoofRow(flatRendered);
+      expect(measuredFlat, greaterThan(0));
+      expect(
+        measuredFlat - syFlat!,
+        inInclusiveRange(-0.5, 1.5),
+        reason: 'without estimates the roof sits on the ground plane',
+      );
+      expect(measuredRoof, lessThan(measuredFlat));
+    });
+  });
+}
+
+Future<Uint8List> _paint({
+  required FogoCameraState camera,
+  required FogoMapStyle style,
+  required FogoMapRenderData data,
+}) async {
+  final ui.PictureRecorder recorder = ui.PictureRecorder();
+  final ui.Canvas canvas = ui.Canvas(recorder);
+  FogoMapPainter(
+    camera: camera,
+    data: data,
+    manifest: FogoMapManifest(
+      bounds: const FogoGeoBounds(west: -1, south: -1, east: 1, north: 1),
+      cellSize: 0.05,
+      columns: 40,
+      rows: 40,
+      attribution: '',
+      generatedAt: '',
+      source: '',
+    ),
+    style: style,
+    polylines: const [],
+    surfaceCache: FogoRoadSurfaceCache(),
+    projectionCache: FogoProjectionCache(),
+  ).paint(canvas, const Size(256, 256));
+  final ui.Picture picture = recorder.endRecording();
+  final ui.Image image = await picture.toImage(256, 256);
+  final ByteData bytes =
+      (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+  image.dispose();
+  picture.dispose();
+  return bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes);
 }
