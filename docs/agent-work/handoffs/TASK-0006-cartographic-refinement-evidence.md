@@ -72,9 +72,18 @@ analysis — this environment has no image-capable review):
 | Marília z16: secondary fill coverage | 4.21% | 4.56% | ramp 6.5 px vs old 6 px |
 | Marília z16: one-way arrow pixels | 0.65% | 0.61% | junction exclusion + 120 px floor; service offset partially |
 | Marília z16 3D: roof coverage | 3.53% | 4.77% | walls+roof composition at pitch |
-| 3D engagement (3d vs topdown diff) | 42.6% | 37.8% | perspective renders, toggle works |
+| 3D engagement, matched probe (see below) | 42.6% | 42.1% | perspective renders, toggle works |
 | Regional: place-label pixels on the map | 34 | 20 | −40% label budget at regional zoom |
 | Regional: arrows/junction artefacts | 0.40% | 0.08% | probe family (arrows + suburb-label colour) collapses |
+
+Probe recipe for every row above (auditor-verified): map crop
+x∈[240,1200), y∈[60,840), 2-px grid, exact-colour tolerances as listed per
+metric. The 3D-engagement row uses the TASK-0005 probe — diff between the
+pitched and flat captures of the same camera over x∈[460,1060), y∈[80,780),
+2-px grid, per-channel tolerance 12 — applied identically to both
+generations. An earlier draft of this table mixed two different probes
+(42.6% vs 37.8%); the auditor caught it and the corrected matched-recipe
+values are shown.
 
 Structural diff of the z16 pair is 3.2% — the same scene with the modelled
 width deltas, i.e. the camera recipes are directly comparable.
@@ -84,7 +93,10 @@ width deltas, i.e. the camera recipes are directly comparable.
 - One-way arrow totals at z16 fall only ~6% net: residential spacing rose
   (100→120 px) but service spacing fell (150→120 px). The junction
   exclusion removes the visually worst repeats; a per-class spacing table
-  remains future tuning.
+  remains future tuning. Auditor note: interior junction nodes of merged
+  ways (a single way turning a corner mid-polyline) are not edge-excluded —
+  only shared way endpoints are.
+- The 250-arrow cap is checked per road iteration, not globally atomic.
 - Place-label budget is static per zoom band; no distance-based priority
   weighting yet.
 - Extrusion occlusion is painter's-algorithm per footprint; intersecting
@@ -92,3 +104,6 @@ width deltas, i.e. the camera recipes are directly comparable.
 - No release-mode/AOT profiling; benchmark is debug-build wall-clock.
 - Label stability during pan relies on deterministic sort order; no
   hysteresis for margin pop-in.
+- The v6 capture set has no flat2 (toggle-back) frame; the 3D-engagement
+  probe compares the pitched frame against the flat top-down frame of the
+  same camera recipe, and the TASK-0005 set supplies the matched baseline.
