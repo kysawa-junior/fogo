@@ -5,7 +5,7 @@ import 'package:fogo/features/map/domain/map_selection.dart';
 import 'package:fogo/features/map/domain/road_filter.dart';
 import 'package:fogo/features/map/providers/layers_provider.dart';
 import 'package:fogo/features/map/providers/workspace_providers.dart';
-import 'package:fogo/features/map/vector/vector_data.dart';
+import 'package:fogo/features/map/vector/vector_data/vector_data.dart';
 
 void main() {
   late ProviderContainer container;

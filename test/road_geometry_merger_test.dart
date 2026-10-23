@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fogo/features/map/vector/road_geometry_merger.dart';
-import 'package:fogo/features/map/vector/road_surface.dart';
-import 'package:fogo/features/map/vector/vector_data.dart';
+import 'package:fogo/features/map/vector/road_geometry_merger/road_geometry_merger.dart';
+import 'package:fogo/features/map/vector/road_surface/road_surface.dart';
+import 'package:fogo/features/map/vector/vector_data/vector_data.dart';
 
 MapRoad _road(
   String name,

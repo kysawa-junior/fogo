@@ -46,3 +46,20 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Dados cartográficos OSM brutos e extratos gerados (regeneráveis via
+# tool/map_data/extract_osm_xml.py a partir do PBF local — nunca commitar).
+*.osm
+*.osm.gz
+*.osm.bz2
+*.osm.pbf
+*.pbf
+assets/map/osm/
+tool/map_data/raw/
+
+# Grafo de conhecimento gerado pelo graphify (cache de análise).
+graphify-out/
+
+# Ambientes virtuais Python (tooling de dados).
+.venv*
+venv/

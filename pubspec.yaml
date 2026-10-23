@@ -12,8 +12,16 @@ dependencies:
     sdk: flutter
 
   latlong2: ^0.10.1
-  fogo_map_sdk:
-    path: packages/fogo_map_sdk
+
+  # F.O.G.O. 3D Engine: renderização 3D (Flutter GPU/Impeller).
+  flutter_scene: ^0.24.3
+  # Matemática de vetores/matriz do motor (já transitiva do Flutter; uso
+  # direto no motor puro em lib/engine/).
+  vector_math: ^2.1.4
+  # Parsing XML (arquivos .osm) — streaming de eventos, sem DOM em memória.
+  xml: ^6.5.0
+  # Diálogo nativo de seleção de arquivo .osm (Windows/Linux/macOS).
+  file_selector: ^1.0.3
 
   # Estado (MVVM) e navegação.
   flutter_riverpod: ^3.4.3
@@ -39,7 +47,9 @@ flutter:
   # dependência (flutter_lucide) a declara; não torna a UI Material.
   uses-material-design: true
 
-  # Base cartográfica real (células OSM geradas por tool/map_data/).
+  # Base cartográfica real: extratos OSM XML das cidades do catálogo
+  # regional (tool/map_data/extract_osm_xml.py) + células 2D legadas.
   assets:
     - assets/map/manifest.json
     - assets/map/cells/
+    - assets/map/osm/

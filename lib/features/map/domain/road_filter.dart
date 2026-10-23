@@ -1,4 +1,4 @@
-import '../vector/vector_data.dart' show RoadClass;
+import '../vector/vector_data/vector_data.dart' show RoadClass;
 
 /// Filtro de vias por grupo (vazio = todas visíveis).
 enum RoadFilterGroup {

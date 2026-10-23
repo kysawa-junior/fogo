@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fogo/features/map/vector/vector_data.dart';
+import 'package:fogo/features/map/vector/vector_data/vector_data.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

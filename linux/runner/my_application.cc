@@ -32,6 +32,8 @@ static void my_application_activate(GApplication* application) {
   gtk_window_set_default_size(window, 1280, 720);
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
+  // F.O.G.O. 3D Engine (Flutter Scene) exige Flutter GPU habilitado.
+  fl_dart_project_set_enable_flutter_gpu(project, TRUE);
   fl_dart_project_set_dart_entrypoint_arguments(
       project, self->dart_entrypoint_arguments);
 

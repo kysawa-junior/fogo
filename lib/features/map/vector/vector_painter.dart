@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import 'vector_data.dart';
+import 'vector_data/vector_data.dart';
 
 /// Preserves zoom visibility thresholds used by the legacy geometry tests.
 abstract final class FogoVectorPainter {

@@ -5,10 +5,10 @@ import 'package:http/testing.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:fogo/core/utils/geo_utils.dart';
-import 'package:fogo/features/routing/data/route_service.dart';
+import 'package:fogo/features/routing/data/route_service/route_service.dart';
 import 'package:fogo/features/routing/domain/route_optimizer.dart';
 import 'package:fogo/features/routing/domain/routing_domain.dart';
-import 'package:fogo/features/routing/providers/routing_providers.dart';
+import 'package:fogo/features/routing/providers/routing_providers/routing_providers.dart';
 
 RouteStop _stop(String id, double lat, double lng) =>
     RouteStop(id: id, name: id, point: LatLng(lat, lng));

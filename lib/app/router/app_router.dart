@@ -6,8 +6,8 @@ import '../../../core/design_system/fogo_spacing.dart';
 import '../../../core/design_system/widgets/fogo_button.dart';
 import '../../../core/design_system/widgets/fogo_panel.dart';
 import '../../../core/theme/fogo_typography.dart';
-import '../../features/inventory/presentation/pages/inventory_page.dart';
-import '../../features/map/presentation/pages/map_workspace_page.dart';
+import '../../features/inventory/presentation/pages/inventory_page/inventory_page.dart';
+import '../../features/map/presentation/pages/map_3d_page/map_3d_page.dart';
 import '../../features/predictive_city/presentation/pages/predictive_city_page.dart';
 
 /// Rotas do F.O.G.O. — páginas customizadas (sem página Material).
@@ -16,7 +16,7 @@ abstract final class AppRouter {
     routes: [
       GoRoute(
         path: '/',
-        pageBuilder: (context, state) => _page(state, const MapWorkspacePage()),
+        pageBuilder: (context, state) => _page(state, const Map3dPage()),
       ),
       GoRoute(
         path: '/inventory',

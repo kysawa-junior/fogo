@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'vector_data.dart';
+import 'vector_data/vector_data.dart';
 
 /// Perfis de largura em px de tela com clamp por classe. Vias poligonais
 /// mantêm em todas as escalas o valor de cada classe em z16. O perfil raw

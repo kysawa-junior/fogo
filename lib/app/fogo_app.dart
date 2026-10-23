@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../../core/design_system/fogo_colors.dart';
-import '../../core/design_system/widgets/fogo_titlebar.dart';
+import '../../core/design_system/widgets/fogo_titlebar/fogo_titlebar.dart';
 import '../../core/theme/fogo_typography.dart';
 import 'router/app_router.dart';
 import 'window_close_handler.dart';
