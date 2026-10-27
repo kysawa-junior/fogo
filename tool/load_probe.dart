@@ -1,0 +1,24 @@
+// ignore_for_file: avoid_print
+import 'dart:io';
+
+import 'package:fogo/engine/fogo_engine.dart';
+
+/// Sonda de carga: tempo por fase do pipeline com o extrato real.
+/// Uso: dart run tool/load_probe.dart [caminho/do.osm.gz]
+void main(List<String> args) {
+  final path = args.isNotEmpty ? args[0] : 'assets/map/osm/regiao.osm.gz';
+  final bytes = File(path).readAsBytesSync();
+  final sw = Stopwatch()..start();
+  final engine = FogoEngine.build(
+    bytes,
+    onProgress: (phase, count) => print('${sw.elapsed}: $phase ($count)'),
+  )!;
+  print('${sw.elapsed}: TOTAL');
+  print('buildings=${engine.model.buildings.length}');
+  print('sceneObjects=${engine.scene.objects.length}');
+  final byKind = <String, int>{};
+  for (final o in engine.scene.objects) {
+    byKind[o.kind.name] = (byKind[o.kind.name] ?? 0) + 1;
+  }
+  print('byKind=$byKind');
+}
