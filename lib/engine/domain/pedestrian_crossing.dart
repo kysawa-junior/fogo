@@ -10,8 +10,15 @@ class PedestrianCrossing extends MapFeature implements MapFeatureWithHeading {
     required super.id,
     required super.tags,
     required this.position,
+    this.marked = true,
     Set<String>? connectedWayIds,
   }) : connectedWayIds = connectedWayIds ?? <String>{};
+
+  /// ETAPA 05: zebra EXPLÍCITA — `crossing=marked/zebra` ou
+  /// `crossing:markings=yes/zebra`. Sem valor, `unmarked` ou
+  /// `markings=no`, o pavimento simples substitui as faixas (nunca
+  /// faixas por padrão).
+  final bool marked;
 
   /// Posição do nó de cruzamento (ou do primeiro nó da via fechada).
   final GeoCoordinate position;

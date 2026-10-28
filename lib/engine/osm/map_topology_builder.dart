@@ -68,6 +68,12 @@ class MapTopologyBuilder {
       final ref = _nodeRefOf(signal.id);
       if (ref != null) _attach(signal, ref, nodeRefToRoads);
     }
+    // ETAPA 05: linhas de parada e dispositivos redutores herdam
+    // orientação e vias conectadas do nó.
+    for (final marking in model.markings) {
+      final ref = _nodeRefOf(marking.id);
+      if (ref != null) _attach(marking, ref, nodeRefToRoads);
+    }
     return network;
   }
 

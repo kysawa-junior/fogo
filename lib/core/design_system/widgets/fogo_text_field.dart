@@ -22,6 +22,11 @@ class FogoTextField extends StatefulWidget {
     this.width,
     this.autofocus = false,
     this.fill = FogoColors.surfaceRaised,
+    this.prefix,
+    this.suffix,
+    this.bordered = true,
+    this.radius,
+    this.height,
   });
 
   final String? label;
@@ -38,6 +43,24 @@ class FogoTextField extends StatefulWidget {
 
   /// Preenchimento do campo — o campo de busca do header usa o vidro escuro.
   final Color fill;
+
+  /// Elemento à direita do campo (base-design.pen: atalho "⌘K" da busca).
+  final Widget? suffix;
+
+  /// Elemento à esquerda do campo (base-design.pen: lupa da busca do
+  /// rodapé).
+  final Widget? prefix;
+
+  /// O design usa campos sem contorno (busca do header); formulários
+  /// densos mantêm a borda para feedback de foco.
+  final bool bordered;
+
+  /// Raio dos cantos — null usa `radiusSm`; a busca do header usa 9.
+  final double? radius;
+
+  /// Altura fixa do campo de uma linha — null usa `controlHeight`
+  /// (base-design.pen: busca do rodapé usa 40).
+  final double? height;
 
   @override
   State<FogoTextField> createState() => _FogoTextFieldState();
@@ -72,6 +95,7 @@ class _FogoTextFieldState extends State<FogoTextField> {
         : _focused
         ? FogoColors.accent
         : FogoColors.border;
+    final double effectiveRadius = widget.radius ?? FogoSpacing.radiusSm;
     return SizedBox(
       width: widget.width,
       child: Column(
@@ -84,36 +108,82 @@ class _FogoTextFieldState extends State<FogoTextField> {
           ],
           AnimatedContainer(
             duration: const Duration(milliseconds: 120),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            // Campo de busca: altura fixa (padrão 34, busca do rodapé
+            // 40 — base-design.pen). Campos multilinha crescem.
+            height: widget.maxLines > 1
+                ? null
+                : (widget.height ?? FogoSpacing.controlHeight),
+            padding: EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: widget.bordered ? 8 : 0,
+            ),
             decoration: BoxDecoration(
               color: widget.fill,
-              borderRadius: BorderRadius.circular(FogoSpacing.radiusSm),
-              border: Border.all(color: border),
+              borderRadius: BorderRadius.circular(effectiveRadius),
+              border: widget.bordered ? Border.all(color: border) : null,
             ),
-            child: EditableText(
-              controller: widget.controller,
-              focusNode: _focus,
-              style: FogoText.body,
-              cursorColor: FogoColors.accent,
-              selectionColor: FogoColors.accent.withValues(alpha: 0.35),
-              backgroundCursorColor: FogoColors.textDisabled,
-              maxLines: widget.maxLines,
-              minLines: widget.minLines,
-              keyboardType: widget.maxLines > 1
-                  ? TextInputType.multiline
-                  : (widget.digitsOnly
-                        ? const TextInputType.numberWithOptions()
-                        : TextInputType.text),
-              inputFormatters: widget.digitsOnly
-                  ? [FilteringTextInputFormatter.digitsOnly]
-                  : null,
-              textInputAction: widget.maxLines > 1
-                  ? TextInputAction.newline
-                  : TextInputAction.search,
-              // Sem menu de contexto Material; atalhos de teclado continuam funcionando.
-              contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-              onChanged: widget.onChanged,
-              onSubmitted: widget.onSubmitted,
+            child: Row(
+              children: [
+                if (widget.prefix != null) ...[
+                  widget.prefix!,
+                  const SizedBox(width: FogoSpacing.sm),
+                ],
+                Expanded(
+                  child: Stack(
+                    alignment: Alignment.centerLeft,
+                    children: [
+                      // Placeholder (EditableText não o tem por padrão).
+                      ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: widget.controller,
+                        builder: (_, value, _) {
+                          if (value.text.isNotEmpty) {
+                            return const SizedBox.shrink();
+                          }
+                          return Text(
+                            widget.hint,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: FogoText.caption.copyWith(
+                              color: FogoColors.textTertiary,
+                            ),
+                          );
+                        },
+                      ),
+                      EditableText(
+                        controller: widget.controller,
+                        focusNode: _focus,
+                        style: FogoText.body,
+                        cursorColor: FogoColors.accent,
+                        selectionColor: FogoColors.accent.withValues(
+                          alpha: 0.35,
+                        ),
+                        backgroundCursorColor: FogoColors.textDisabled,
+                        maxLines: widget.maxLines,
+                        minLines: widget.minLines,
+                        keyboardType: widget.maxLines > 1
+                            ? TextInputType.multiline
+                            : (widget.digitsOnly
+                                  ? const TextInputType.numberWithOptions()
+                                  : TextInputType.text),
+                        inputFormatters: widget.digitsOnly
+                            ? [FilteringTextInputFormatter.digitsOnly]
+                            : null,
+                        textInputAction: widget.maxLines > 1
+                            ? TextInputAction.newline
+                            : TextInputAction.search,
+                        // Sem menu de contexto Material; atalhos de teclado continuam funcionando.
+                        contextMenuBuilder: (_, _) => const SizedBox.shrink(),
+                        onChanged: widget.onChanged,
+                        onSubmitted: widget.onSubmitted,
+                      ),
+                    ],
+                  ),
+                ),
+                if (widget.suffix != null) ...[
+                  const SizedBox(width: FogoSpacing.sm),
+                  widget.suffix!,
+                ],
+              ],
             ),
           ),
           if (hasError) ...[

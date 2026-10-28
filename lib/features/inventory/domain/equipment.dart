@@ -1,7 +1,16 @@
 import 'package:latlong2/latlong.dart';
 
-/// Categoria do ativo urbano.
-enum EquipmentCategory { camera, radar, scale, gate, kiosk, scooter, sensor }
+/// Categoria do ativo urbano (mesmos nomes do enum do fogo-server).
+enum EquipmentCategory {
+  camera,
+  radar,
+  scale,
+  gate,
+  kiosk,
+  scooter,
+  sensor,
+  semaforo,
+}
 
 /// Estado de disponibilidade do equipamento.
 enum EquipmentStatus { online, attention, offline, maintenance }

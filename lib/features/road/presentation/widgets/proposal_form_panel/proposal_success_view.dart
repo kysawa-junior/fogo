@@ -15,6 +15,7 @@ class _ProposalSuccessView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FogoPanel(
+      modal: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,

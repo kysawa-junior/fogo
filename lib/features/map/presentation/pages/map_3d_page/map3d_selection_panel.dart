@@ -3,9 +3,12 @@ part of 'map_3d_page.dart';
 /// Painel de seleção: propriedades da entidade cartográfica escolhida no
 /// viewport (rua, edifício, travessia, semáforo ou área).
 class _SelectionPanel extends ConsumerWidget {
-  const _SelectionPanel({required this.details});
+  const _SelectionPanel({required this.details, required this.onFrame});
 
   final EntityDetails? details;
+
+  /// Enquadra a entidade selecionada (botão de foco do painel).
+  final VoidCallback onFrame;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -20,6 +23,8 @@ class _SelectionPanel extends ConsumerWidget {
           Row(
             children: [
               Expanded(child: Text(data.title, style: FogoText.title)),
+              FogoIconButton(icon: LucideIcons.locate_fixed, onTap: onFrame),
+              const SizedBox(width: FogoSpacing.xs),
               FogoIconButton(
                 icon: LucideIcons.x,
                 onTap: () =>

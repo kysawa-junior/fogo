@@ -2,6 +2,7 @@ import 'package:fogo/engine/domain/road_network.dart' show RoadNetwork;
 import 'package:fogo/engine/osm/map_topology_builder.dart';
 import 'package:fogo/engine/osm/osm_elements.dart';
 import 'package:fogo/engine/osm/osm_feature_mapper.dart';
+import 'package:fogo/engine/osm/road_deduplicator.dart';
 import 'package:fogo/engine/osm/osm_xml_reader.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -16,6 +17,14 @@ void main() {
     store = OsmDataStore();
     OsmXmlReader.read(fixtureBytes(), store);
     model = OsmFeatureMapper().map(store);
+    // Modelo DEDUPLICADO — o mesmo caminho do pipeline real
+    // (FogoEngine.build): a duplicata comprovada (way/42) sai ANTES da
+    // topologia, exatamente como na aplicação.
+    final dedup = RoadDeduplicator.dedupe(model.roads, store);
+    model.roads
+      ..clear()
+      ..addAll(dedup.roads);
+    model.indexAll();
     network = MapTopologyBuilder().build(model, store);
   });
 
@@ -23,6 +32,7 @@ void main() {
     final junction = network.nodes['node/2'];
     expect(junction, isNotNull);
     expect(junction!.isJunction, isTrue, reason: 'way 10 e way 12 o contêm');
+    // Modelo DEDUPLICADO (como o pipeline): a duplicata way/42 já saiu.
     expect(junction.wayIds, {'way/10', 'way/12'});
 
     // Conectividade: node/1 e node/9 estão ligados via segmentos de
@@ -31,8 +41,12 @@ void main() {
     // nós COMPARTILHADOS.
     final fromOne = network.neighborNodeIds('node/1').toSet();
     expect(fromOne, contains('node/2'));
+    // Modelo CRU: a duplicata way/42 (mesmos nós da way/10) torna os
+    // nós internos 3 e 4 junções — vizinhos diretos de node/2 mudam.
+    // O pipeline completo deduplica antes da topologia (ver
+    // fogo_engine_test).
     final fromTwo = network.neighborNodeIds('node/2').toSet();
-    expect(fromTwo, containsAll(['node/1', 'node/9', 'node/4']));
+    expect(fromTwo, containsAll(['node/1', 'node/101', 'node/9']));
   });
 
   test('cruzamento geométrico sem nó compartilhado NÃO conecta', () {
@@ -55,11 +69,11 @@ void main() {
     final way10Segments = network.segments.values
         .where((s) => s.roadId == 'way/10')
         .toList();
-    // way 10: nós 1,2,3,4; junções em 2 (compartilhado). Segmentos:
-    // [1..2], [2..4].
-    expect(way10Segments.length, 2);
+    // way 10: nós 1,99,2,3,101,4 (dedup); junções em 2 (way/12) e 101
+    // (way/61, cruzamento ferroviário) → [1..2], [2..101], [101..4].
+    expect(way10Segments.length, 3);
     final segIds = way10Segments.map((s) => s.id).toSet();
-    expect(segIds.length, 2, reason: 'ids estáveis e distintos');
+    expect(segIds.length, 3, reason: 'ids estáveis e distintos');
     final road = model.roads.firstWhere((r) => r.id == 'way/10');
     for (final seg in way10Segments) {
       expect(seg.pointStart, lessThan(seg.pointEnd));

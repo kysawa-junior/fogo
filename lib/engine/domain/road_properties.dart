@@ -7,12 +7,15 @@ class RoadProperties {
   RoadProperties({
     this.widthMeters,
     this.lanes,
-    this.oneway = false,
+    bool oneway = false,
+    RoadDirection? direction,
     this.surface,
     this.layer = 0,
     this.bridge = false,
     this.tunnel = false,
-  });
+  }) : direction =
+           direction ?? (oneway ? RoadDirection.forward : RoadDirection.both),
+       oneway = direction == null ? oneway : direction != RoadDirection.both;
 
   /// Largura: conhecida (tag `width`), estimada (por tipo/`lanes`) ou
   /// padrão — preenchida pelo OsmFeatureMapper, nula antes disso.
@@ -21,8 +24,12 @@ class RoadProperties {
   /// Número de faixas (tag `lanes`); nula = ausente.
   final int? lanes;
 
-  /// Sentido de circulação (tag `oneway`). A direção GEOMÉTRICA da
-  /// sequência de pontos não é o sentido de tráfego; esta flag vem da tag.
+  /// Sentido de circulação. `forward` follows ordered OSM points;
+  /// `reverse` permits travel in the opposite direction.
+  final RoadDirection direction;
+
+  /// Compatibilidade: true continua significando exatamente um sentido
+  /// permitido, seja ele [RoadDirection.forward] ou [RoadDirection.reverse].
   final bool oneway;
 
   /// Superfície (tag `surface`); nula = ausente.
@@ -37,3 +44,5 @@ class RoadProperties {
   /// Túnel (tag `tunnel`).
   final bool tunnel;
 }
+
+enum RoadDirection { both, forward, reverse }

@@ -123,6 +123,7 @@ class _ProposalFormPanelState extends ConsumerState<ProposalFormPanel> {
       );
     }
     return FogoPanel(
+      modal: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,

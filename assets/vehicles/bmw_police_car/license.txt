@@ -1,0 +1,11 @@
+Model Information:
+* title:	BMW POLICE CAR
+* source:	https://sketchfab.com/3d-models/bmw-police-car-4b9ee8054ab74bbd9d6521772bbec41d
+* author:	zairiq-zairiq-123-pixar-cars-bfdi (https://sketchfab.com/zairiqzairiqpixarcarsbfdi)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "BMW POLICE CAR" (https://sketchfab.com/3d-models/bmw-police-car-4b9ee8054ab74bbd9d6521772bbec41d) by zairiq-zairiq-123-pixar-cars-bfdi (https://sketchfab.com/zairiqzairiqpixarcarsbfdi) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

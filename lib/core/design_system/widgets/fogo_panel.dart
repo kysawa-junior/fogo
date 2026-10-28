@@ -2,9 +2,11 @@ import 'package:flutter/widgets.dart';
 
 import '../fogo_colors.dart';
 import '../fogo_spacing.dart';
+import 'fogo_glass.dart';
 
-/// Superfície flutuante padrão (painéis sobre o mapa).
-/// Altura limitada com rolagem interna, para nunca cobrir o mapa por completo.
+/// Painel flutuante padrão sobre o mapa (base-design.pen: Card Base
+/// Cartográfica e modais). Vidro: backdrop-blur + sombra, sem borda.
+/// Altura limitada com rolagem interna, para nunca cobrir o mapa.
 class FogoPanel extends StatelessWidget {
   const FogoPanel({
     super.key,
@@ -13,7 +15,9 @@ class FogoPanel extends StatelessWidget {
     this.maxHeightFactor = 0.78,
     this.padding = FogoSpacing.panelPadding,
     this.elevated = true,
-    this.bordered = true,
+    this.bordered = false,
+    this.radius = FogoSpacing.radiusLg,
+    this.modal = false,
   });
 
   final Widget child;
@@ -25,32 +29,41 @@ class FogoPanel extends StatelessWidget {
   /// (espelha o base-design.pen, onde o modal não tem sombra).
   final bool elevated;
 
-  /// Contorno — desativado nos cards flutuantes minimalistas
-  /// (legenda e zoom).
+  /// Contorno opcional — o design usa vidro sem borda; mantido para
+  /// painéis densos que precisam de separação do mapa.
   final bool bordered;
+
+  /// Raios do design: cards 12 (`radiusLg`), modais 14 (`radiusXl`).
+  final double radius;
+
+  /// Modais usam raio 14 e sombra mais profunda (base-design.pen).
+  final bool modal;
 
   @override
   Widget build(BuildContext context) {
     final double maxHeight =
         MediaQuery.sizeOf(context).height * maxHeightFactor;
-    return Container(
-      width: width,
+    final double effectiveRadius = modal ? FogoSpacing.radiusXl : radius;
+    return ConstrainedBox(
       constraints: BoxConstraints(maxHeight: maxHeight),
-      decoration: BoxDecoration(
-        color: FogoColors.surfaceCard,
-        borderRadius: BorderRadius.circular(FogoSpacing.radiusMd),
-        border: bordered ? Border.all(color: FogoColors.border) : null,
-        boxShadow: elevated
-            ? const [
-                BoxShadow(
-                  color: Color(0x73000000),
-                  offset: Offset(0, 8),
-                  blurRadius: 24,
-                ),
-              ]
-            : null,
+      child: FogoGlass(
+        radius: effectiveRadius,
+        fill: FogoColors.surfaceCard,
+        shadow: modal
+            ? (elevated ? FogoSpacing.modalShadow : null)
+            : (elevated ? FogoSpacing.cardShadow : null),
+        child: Container(
+          width: width,
+          padding: padding,
+          decoration: bordered
+              ? BoxDecoration(
+                  border: Border.all(color: FogoColors.borderSubtle),
+                  borderRadius: BorderRadius.circular(effectiveRadius),
+                )
+              : null,
+          child: SingleChildScrollView(child: child),
+        ),
       ),
-      child: SingleChildScrollView(padding: padding, child: child),
     );
   }
 }

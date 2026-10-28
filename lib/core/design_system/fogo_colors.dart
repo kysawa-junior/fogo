@@ -15,13 +15,14 @@ abstract final class FogoColors {
   static const Color borderStrong = Color(0xFF33425C);
 
   // Texto
-  static const Color textPrimary = Color(0xFFE9EDF5);
-  static const Color textSecondary = Color(0xFF9AA7BC);
-  static const Color textDisabled = Color(0xFF5D6879);
+  static const Color textPrimary = Color(0xFFF4F5FA);
+  static const Color textSecondary = Color(0xFFA2A8C6);
+  static const Color textTertiary = Color(0xFF6A7095);
+  static const Color textDisabled = textTertiary;
 
   // Identidade F.O.G.O.
-  static const Color accent = Color(0xFFFF6A3D);
-  static const Color accentSoft = Color(0x26FF6A3D);
+  static const Color accent = Color(0xFFFF6A2B);
+  static const Color accentSoft = Color(0x26FF6A2B);
   static const Color onAccent = Color(0xFF1A0E08);
 
   // Acento de superfície ativa (variável bg-active-surface do base-design.pen)
@@ -30,7 +31,7 @@ abstract final class FogoColors {
   static const Color transparent = Color(0x00000000);
 
   // Estados operacionais (semântica compartilhada)
-  static const Color statusNormal = Color(0xFF3DDC97);
+  static const Color statusNormal = Color(0xFF4ADE80);
   static const Color statusAttention = Color(0xFFF5B84C);
   static const Color statusCritical = Color(0xFFFF5A5F);
   static const Color statusOffline = Color(0xFF7C879B);

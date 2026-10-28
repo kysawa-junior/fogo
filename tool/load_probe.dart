@@ -16,6 +16,12 @@ void main(List<String> args) {
   print('${sw.elapsed}: TOTAL');
   print('buildings=${engine.model.buildings.length}');
   print('sceneObjects=${engine.scene.objects.length}');
+  print('footprintBatches=${engine.scene.buildingFootprints.length}');
+  final padVerts = engine.scene.buildingFootprints.fold<int>(
+    0,
+    (n, b) => n + b.mesh.vertexCount,
+  );
+  print('footprintVerts=$padVerts');
   final byKind = <String, int>{};
   for (final o in engine.scene.objects) {
     byKind[o.kind.name] = (byKind[o.kind.name] ?? 0) + 1;

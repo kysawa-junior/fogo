@@ -29,7 +29,22 @@ abstract final class PolygonTriangulator {
     }
     final triangles = _earClip(ring);
     if (triangles == null) return null;
-    return (vertices: ring, triangles: triangles);
+    // Descarta slivers (área < 1 cm²): orelhas quase colineares são
+    // geometricamente inertes e poluem a malha — nenhum triângulo
+    // degenerado no resultado.
+    final kept = <int>[];
+    for (var i = 0; i < triangles.length; i += 3) {
+      final a = ring[triangles[i]];
+      final b = ring[triangles[i + 1]];
+      final c = ring[triangles[i + 2]];
+      final area2 = ((b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x))
+          .abs();
+      if (area2 >= 2e-4) {
+        kept.addAll([triangles[i], triangles[i + 1], triangles[i + 2]]);
+      }
+    }
+    if (kept.isEmpty) return null;
+    return (vertices: ring, triangles: kept);
   }
 
   /// Remove vértice duplicado do fechamento (primeiro == último) e
@@ -44,11 +59,11 @@ abstract final class PolygonTriangulator {
     return out.length < 3 ? null : out;
   }
 
+  /// Igualdade no plano XZ (a triangulação é de superfícies horizontais:
+  /// nós duplicados em lat/lon com `ele` divergente são o mesmo vértice).
   static bool _same(Vector3 a, Vector3 b) {
     const eps = 1e-6;
-    return (a.x - b.x).abs() < eps &&
-        (a.y - b.y).abs() < eps &&
-        (a.z - b.z).abs() < eps;
+    return (a.x - b.x).abs() < eps && (a.z - b.z).abs() < eps;
   }
 
   static double _area(List<Vector3> ring) {

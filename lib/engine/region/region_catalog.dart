@@ -3,13 +3,17 @@ import '../spatial/spatial_partitioner.dart' show MapCity;
 
 /// Catálogo regional do F.O.G.O.: Marília-SP, Vera Cruz-SP, Garça-SP e o
 /// corredor entre elas. Caixas urbanas generosas (não são limites
-/// municipais); arquivos `.osm` são configuráveis por cidade.
+/// municipais). A base 3D é UM único extrato OSM com as três cidades
+/// juntas; as cidades do catálogo servem de âncora para a câmera
+/// (navegação inferior centraliza em cima delas).
 ///
-/// Fontes dos dados empacotados: extratos reais do OpenStreetMap
-/// (© OpenStreetMap contributors) gerados a partir do PBF local — ver
+/// Fonte dos dados empacotados: extrato real do OpenStreetMap
+/// (© OpenStreetMap contributors) gerado a partir do PBF local — ver
 /// `tool/map_data/README.md`. Sem arquivo empacotado, o usuário importa
 /// qualquer `.osm` via seletor de arquivos.
 abstract final class RegionCatalog {
+  /// Extrato OSM único da região: as três cidades + corredor.
+  static const regionOsmAssetPath = 'assets/map/osm/regiao.osm.gz';
   static const mariliaBounds = GeoBounds(
     west: -49.975,
     south: -22.235,
@@ -35,21 +39,18 @@ abstract final class RegionCatalog {
     id: 'marilia',
     name: 'Marília-SP',
     bounds: mariliaBounds,
-    osmAssetPath: 'assets/map/osm/marilia.osm.gz',
   );
 
   static const MapCity veraCruz = MapCity(
     id: 'vera-cruz',
     name: 'Vera Cruz-SP',
     bounds: veraCruzBounds,
-    osmAssetPath: 'assets/map/osm/vera-cruz.osm.gz',
   );
 
   static const MapCity garca = MapCity(
     id: 'garca',
     name: 'Garça-SP',
     bounds: garcaBounds,
-    osmAssetPath: 'assets/map/osm/garca.osm.gz',
   );
 
   static const List<MapCity> cities = [marilia, veraCruz, garca];

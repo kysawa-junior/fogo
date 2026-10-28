@@ -44,6 +44,7 @@ class _ProposalsPanelState extends ConsumerState<ProposalsPanel> {
 
     return FogoPanel(
       elevated: false,
+      modal: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,

@@ -35,6 +35,7 @@ dependencies:
   flutter_lucide: ^1.59.0
   http: ^1.6.0
   shared_preferences: ^2.5.6
+  desktop_multi_window: ^0.3.1
 
 dev_dependencies:
   flutter_test:
@@ -47,9 +48,12 @@ flutter:
   # dependência (flutter_lucide) a declara; não torna a UI Material.
   uses-material-design: true
 
-  # Base cartográfica real: extratos OSM XML das cidades do catálogo
-  # regional (tool/map_data/extract_osm_xml.py) + células 2D legadas.
+  # Base cartográfica real: extrato OSM XML único da região — as três
+  # cidades do catálogo + corredor (tool/map_data/extract_osm_xml.py).
   assets:
-    - assets/map/manifest.json
-    - assets/map/cells/
     - assets/map/osm/
+    # Subpastas de viaturas: entradas de diretório incluem apenas os
+    # arquivos do nível declarado — cada pasta precisa da própria linha.
+    - assets/vehicles/bmw_police_car/
+    - assets/vehicles/bmw_police_car/textures/
+    - assets/vehicles/fire_truck/

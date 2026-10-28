@@ -1,36 +1,60 @@
-# Local OSM cell data
+# Local OSM data
 
-`assets/map` contains regional vector cells (`cells/l0_*.json.gz` and
-`cells/l1_*.json.gz`) plus `manifest.json`; coverage is Marília-SP, Vera Cruz-SP,
-Garça-SP, and their corridor. The app reads these local assets and makes no
-runtime map-network requests. The raster renderer and Pillow flow have been
-removed. The generator dependency is `osmium==4.3.1` (`requirements.txt`).
+`assets/map/osm/regiao.osm.gz` is the single packed OSM XML extract of the
+F.O.G.O. region: Marília-SP, Vera Cruz-SP, Garça-SP, and their corridor in one
+file (3D camera anchors per city live in `lib/engine/region/region_catalog.dart`).
+The legacy vector cells (`cells/`, `manifest.json`) and the Mapbox raster/`MVT`
+sources were removed; the 3D engine consumes only the OSM extract, and the user
+can import any `.osm` via the file selector. `build_map_data.py` and its cell
+pipeline are retained as project history only — do not run them against
+`assets/map`.
 
-## Regenerate from the existing local PBF
+## Regenerate the regional extract from the existing local PBF
 
-`build_map_data.py` reads an existing PBF only; it has no download path. Install
-the generator dependency, then stage outside `assets/map` (stage must be new or
-empty):
+`extract_osm_xml.py` reads the existing PBF only; it has no download path. The
+generator dependency is `osmium==4.3.1` (`requirements.txt`):
 
 ```sh
 python3 -m venv .venv-map
-. .venv-map/bin/activate
+. . .venv-map/bin/activate
 python -m pip install -r tool/map_data/requirements.txt
-python tool/map_data/build_map_data.py \
-  --pbf tool/map_data/raw/sudeste-latest.osm.pbf \
-  --stage /tmp/fogo-map-stage \
-  --promote-to assets/map
+python tool/map_data/extract_osm_xml.py
 ```
 
-The generator hashes the PBF immediately before and after processing/output;
-the hashes must match, and staged `manifest.json` `sourceSha256` must equal that
-digest. Promotion runs only after deep semantic comparison passes: cell paths,
-membership, geometry, and non-height cell data must match. Only approved
-positive building `height` additions and height-related manifest counters, plus
-`generatedAt` and `l1Bytes`, may change. All remaining manifest fields/counts,
-including non-height counts, are preserved; `l0Bytes` must remain unchanged and
-match staged L0 files. Hash, source-SHA, or semantic mismatch fails closed
-without promotion.
+The region bbox (union of the three urban boxes + corridor) is defined at the
+top of the script; edit it there and rerun to re-cover a different area.
+
+## Merge Overture Maps buildings into the extract
+
+`overture_to_osm.py` converts the Overture buildings Parquet files (default
+`~/dados-overture/edificios`) into OSM XML and rewrites
+`assets/map/osm/regiao.osm.gz`. The 3D engine reads buildings through the
+normal OSM path — no engine changes are involved.
+
+```sh
+uv run --with pyarrow --with shapely \
+    python tool/map_data/overture_to_osm.py [--parquet-dir DIR] [--dry-run]
+```
+
+Behavior (spec: `docs/superpowers/specs/2026-10-27-overture-buildings-merge.md`):
+
+- Only ground-level footprints fully inside the region bbox are merged.
+- An OSM building (way or multipolygon) whose footprint intersects an Overture
+  footprint is dropped — Overture wins the dedup.
+- Buildings with courtyards or multiple parts become `type=multipolygon`
+  relations; the rest are closed ways.
+- Tags: `building=<subtype|yes>`, `height`, `building:levels` (from
+  `num_floors`), `min_height`, `name`, `source=overture-maps`. The Overture
+  dataset for this region has heights on only ~16 of 75k buildings; the rest
+  fall back to the engine's per-category default heights.
+- New elements use positive ids above the maximum id in the file (the engine
+  rejects negative ids).
+- **Always rerun this after `extract_osm_xml.py`** — regenerating the extract
+  alone discards the Overture layer.
+
+Current merge (2026-10-27): 75,203 Overture buildings in, 1,513 of the 1,518
+OSM buildings dropped as covered, 6 multipolygons, ~344k nodes. Engine load of
+the merged extract takes ~18 s in the map-load isolate.
 
 ## Height parsing and counters
 

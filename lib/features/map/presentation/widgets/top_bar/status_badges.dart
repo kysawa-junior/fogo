@@ -1,25 +1,22 @@
 part of 'top_bar.dart';
 
-/// Estado do motor 3D: label + cor para o badge da barra.
+/// Estado do motor 3D: label + cor para o chip do header.
 (String, Color) _engineStatusPresentation(MapEngineState state) {
   final (String label, Color color) = switch (state.phase) {
-    MapIdle() => ('motor 3D · sem base', FogoColors.statusOffline),
+    MapIdle() => ('sem base', FogoColors.statusOffline),
     MapLoading(:final label, :final count) => (
-      'importando OSM · $label $count',
+      'importando · $label $count',
       FogoColors.statusAttention,
     ),
-    MapReady() => (
-      state.activeCityId.isEmpty
-          ? 'OSM 3D · ${state.sourceLabel}'
-          : 'OSM 3D · ${state.sourceLabel}',
-      FogoColors.statusNormal,
-    ),
+    // base-design.pen: chip "● base OSM" quando a carga terminou.
+    MapReady() => ('base OSM', FogoColors.statusNormal),
     MapError() => ('erro na importação', FogoColors.statusCritical),
   };
   return (label, color);
 }
 
-/// Small pill showing the engine state with a status dot.
+/// Chip "● base OSM" do header (base-design.pen): fundo #01010e, raio 8,
+/// padding 6/10, ponto 5px, rótulo 11/500 secundário.
 class _MapStatusBadge extends StatelessWidget {
   const _MapStatusBadge({required this.label, required this.color});
 
@@ -31,7 +28,7 @@ class _MapStatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: FogoColors.overlayFaint,
+        color: FogoColors.surfaceCard,
         borderRadius: BorderRadius.circular(FogoSpacing.radiusSm),
       ),
       child: Row(

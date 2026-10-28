@@ -1,6 +1,7 @@
 part of 'inventory_page.dart';
 
-/// One equipment entry: category icon, name, location and status chip.
+/// Card de equipamento: tile de categoria, nome, categoria·id, coords
+/// e estado. Largura fixa — a página distribui em grade (Wrap).
 class _EquipmentRow extends StatefulWidget {
   const _EquipmentRow({required this.equipment, required this.onTap});
 
@@ -27,10 +28,12 @@ class _EquipmentRowState extends State<_EquipmentRow> {
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 100),
+          width: _cardWidth,
+          constraints: const BoxConstraints(minHeight: _cardMinHeight),
           padding: const EdgeInsets.all(FogoSpacing.md),
           decoration: BoxDecoration(
             color: _hover ? FogoColors.surfaceHover : FogoColors.surfaceRaised,
-            borderRadius: BorderRadius.circular(FogoSpacing.radiusSm),
+            borderRadius: BorderRadius.circular(FogoSpacing.radiusMd),
             border: Border.all(
               color: _hover ? FogoColors.borderStrong : FogoColors.border,
             ),
@@ -38,15 +41,16 @@ class _EquipmentRowState extends State<_EquipmentRow> {
           child: Row(
             children: [
               Container(
-                width: 30,
-                height: 30,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: status.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(FogoSpacing.radiusSm),
+                  border: Border.all(color: status.withValues(alpha: 0.35)),
                 ),
                 child: Icon(
                   equipmentCategoryIcon(equipment.category),
-                  size: 15,
+                  size: 17,
                   color: status,
                 ),
               ),
@@ -55,9 +59,20 @@ class _EquipmentRowState extends State<_EquipmentRow> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(equipment.name, style: FogoText.subtitle),
                     Text(
-                      '${equipment.id} · ${equipmentCategoryLabel(equipment.category)} · '
+                      equipment.name,
+                      style: FogoText.subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      '${equipmentCategoryLabel(equipment.category)} · '
+                      '${equipment.id}',
+                      style: FogoText.caption,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
                       '${equipment.location.latitude.toStringAsFixed(4)}, '
                       '${equipment.location.longitude.toStringAsFixed(4)}',
                       style: FogoText.mono,
@@ -71,11 +86,12 @@ class _EquipmentRowState extends State<_EquipmentRow> {
               ),
               const SizedBox(width: FogoSpacing.sm),
               Icon(
-                LucideIcons.chevron_down,
+                LucideIcons.chevron_right,
                 size: 14,
-                color: FogoColors.textDisabled,
+                color: _hover
+                    ? FogoColors.textSecondary
+                    : FogoColors.textDisabled,
               ),
-              const SizedBox(width: 2),
             ],
           ),
         ),

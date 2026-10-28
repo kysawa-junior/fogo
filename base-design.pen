@@ -197,6 +197,90 @@
               "icon": "map-pin",
               "library": "lucide",
               "fill": "$accent"
+            },
+            {
+              "type": "frame",
+              "id": "tjoxx",
+              "x": 15,
+              "y": 396,
+              "name": "Abas de Navegação",
+              "width": 40,
+              "fill": "$bg-canvas",
+              "cornerRadius": 12,
+              "layout": "vertical",
+              "gap": 4,
+              "padding": 5,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "SPuwt",
+                  "name": "Aba Ativa — Operações",
+                  "width": 30,
+                  "height": 30,
+                  "fill": "$bg-active-surface",
+                  "cornerRadius": 8,
+                  "gap": 8,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "X8P0Q",
+                      "name": "Ícone Operações",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "siren",
+                      "library": "lucide",
+                      "fill": "#0B0B14"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "y0hzDl",
+                  "name": "Aba — Inventário",
+                  "width": 30,
+                  "height": 30,
+                  "cornerRadius": 8,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "NQdJr",
+                      "name": "Ícone Inventário",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "boxes",
+                      "library": "lucide",
+                      "fill": "$text-secondary"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "TisXp",
+                  "name": "Aba — Cidade Preditiva",
+                  "width": 30,
+                  "height": 30,
+                  "cornerRadius": 8,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "d6iOcD",
+                      "name": "Ícone Cidade Preditiva",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "brain-circuit",
+                      "library": "lucide",
+                      "fill": "$text-secondary"
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -230,147 +314,9 @@
             0,
             20
           ],
-          "justifyContent": "space_between",
+          "justifyContent": "end",
           "alignItems": "center",
           "children": [
-            {
-              "type": "frame",
-              "id": "tjoxx",
-              "name": "Abas de Navegação",
-              "cornerRadius": 10,
-              "gap": 4,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "SPuwt",
-                  "name": "Aba Ativa — Operações",
-                  "fill": "$bg-active-surface",
-                  "cornerRadius": 8,
-                  "gap": 8,
-                  "padding": [
-                    7,
-                    14
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "i5hbQQ",
-                      "name": "Rótulo",
-                      "fill": "$text-primary",
-                      "content": "Operações",
-                      "fontFamily": "$font-ui",
-                      "fontSize": 13,
-                      "fontWeight": "600"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "y0hzDl",
-                  "name": "Aba — Inventário",
-                  "cornerRadius": 8,
-                  "padding": [
-                    7,
-                    14
-                  ],
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "FmOsL",
-                      "name": "Rótulo",
-                      "fill": "$text-secondary",
-                      "content": "Inventário",
-                      "fontFamily": "$font-ui",
-                      "fontSize": 13,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "TisXp",
-                  "name": "Aba — Cidade Preditiva",
-                  "cornerRadius": 8,
-                  "padding": [
-                    7,
-                    14
-                  ],
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "nu6Uh",
-                      "name": "Rótulo",
-                      "fill": "$text-secondary",
-                      "content": "Cidade Preditiva",
-                      "fontFamily": "$font-ui",
-                      "fontSize": 13,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "Dlkv0",
-              "name": "Campo de Busca",
-              "width": 340,
-              "height": 34,
-              "fill": "$bg-surface",
-              "cornerRadius": 9,
-              "stroke": "$border-faint",
-              "strokeWidth": 1,
-              "gap": 8,
-              "padding": [
-                0,
-                12
-              ],
-              "justifyContent": "space_between",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "i8w0dC",
-                  "name": "Busca Esquerda",
-                  "gap": 8,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "g5mBq",
-                      "name": "Ícone Busca",
-                      "width": 15,
-                      "height": 15,
-                      "icon": "search",
-                      "library": "lucide",
-                      "fill": "$text-tertiary"
-                    },
-                    {
-                      "type": "text",
-                      "id": "g9FRh",
-                      "name": "Placeholder",
-                      "fill": "$text-tertiary",
-                      "content": "Buscar endereço, hidrante, via…",
-                      "fontFamily": "$font-ui",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "text",
-                  "id": "mevLP",
-                  "name": "Atalho",
-                  "fill": "$text-tertiary",
-                  "content": "⌘K",
-                  "fontFamily": "$font-ui",
-                  "fontSize": 11,
-                  "fontWeight": "normal"
-                }
-              ]
-            },
             {
               "type": "frame",
               "id": "nf7y4",
@@ -384,7 +330,7 @@
                   "name": "Ferramenta — Camadas",
                   "width": 32,
                   "height": 32,
-                  "fill": "#FFFFFF08",
+                  "fill": "$bg-surface",
                   "cornerRadius": 8,
                   "justifyContent": "center",
                   "alignItems": "center",
@@ -407,7 +353,7 @@
                   "name": "Ferramenta — Medir",
                   "width": 32,
                   "height": 32,
-                  "fill": "#FFFFFF08",
+                  "fill": "$bg-surface",
                   "cornerRadius": 8,
                   "justifyContent": "center",
                   "alignItems": "center",
@@ -430,7 +376,7 @@
                   "name": "Ferramenta — Centralizar",
                   "width": 32,
                   "height": 32,
-                  "fill": "#FFFFFF08",
+                  "fill": "$bg-surface",
                   "cornerRadius": 8,
                   "justifyContent": "center",
                   "alignItems": "center",
@@ -451,7 +397,7 @@
                   "type": "rectangle",
                   "id": "j2rqpK",
                   "name": "Divisor",
-                  "fill": "$border-subtle",
+                  "fill": "$text-tertiary",
                   "width": 1,
                   "height": 18
                 },
@@ -459,7 +405,7 @@
                   "type": "frame",
                   "id": "I2XA2X",
                   "name": "Indicador Base OSM",
-                  "fill": "#FFFFFF08",
+                  "fill": "$bg-surface",
                   "cornerRadius": 8,
                   "gap": 6,
                   "padding": [
@@ -487,122 +433,6 @@
                       "fontWeight": "500"
                     }
                   ]
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "HSBPK",
-          "x": 606,
-          "y": 844,
-          "name": "Navegador de Cidades",
-          "height": 40,
-          "cornerRadius": 11,
-          "effect": [
-            {
-              "type": "background_blur",
-              "radius": 24
-            },
-            {
-              "type": "shadow",
-              "shadowType": "outer",
-              "color": "#00000080",
-              "offset": {
-                "x": 0,
-                "y": 10
-              },
-              "blur": 28,
-              "spread": -10
-            }
-          ],
-          "gap": 4,
-          "padding": [
-            0,
-            5
-          ],
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "frame",
-              "id": "YWnSK",
-              "name": "Cidade — Região",
-              "height": 32,
-              "cornerRadius": 8,
-              "padding": [
-                0,
-                16
-              ],
-              "justifyContent": "center",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "v3IzEh",
-                  "name": "Rótulo",
-                  "fill": "$text-secondary",
-                  "content": "Região",
-                  "fontFamily": "$font-ui",
-                  "fontSize": 12,
-                  "fontWeight": "normal"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "w1INpd",
-              "name": "Cidade Ativa — Marília",
-              "height": 32,
-              "fill": "#0fc3ffff",
-              "cornerRadius": 8,
-              "effect": {
-                "type": "shadow",
-                "shadowType": "outer",
-                "color": "#FF6A2B26",
-                "blur": 12
-              },
-              "padding": [
-                0,
-                16
-              ],
-              "justifyContent": "center",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "EtcU7",
-                  "name": "Rótulo",
-                  "fill": "$text-primary",
-                  "content": "Marília",
-                  "fontFamily": "$font-ui",
-                  "fontSize": 12,
-                  "fontWeight": "600"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "Dlio0",
-              "name": "Cidade — Garça",
-              "height": 32,
-              "cornerRadius": 8,
-              "padding": [
-                0,
-                16
-              ],
-              "justifyContent": "center",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "rXe3Z",
-                  "name": "Rótulo",
-                  "fill": "$text-secondary",
-                  "content": "Garça",
-                  "fontFamily": "$font-ui",
-                  "fontSize": 12,
-                  "fontWeight": "normal"
                 }
               ]
             }
@@ -686,14 +516,6 @@
                   "fill": "$text-tertiary"
                 }
               ]
-            },
-            {
-              "type": "rectangle",
-              "id": "o4o10C",
-              "name": "Divisor",
-              "fill": "$border-faint",
-              "width": "fill_container",
-              "height": 1
             },
             {
               "type": "frame",
@@ -838,14 +660,6 @@
               ]
             },
             {
-              "type": "rectangle",
-              "id": "W2yL7",
-              "name": "Divisor Rodapé",
-              "fill": "$border-faint",
-              "width": "fill_container",
-              "height": 1
-            },
-            {
               "type": "frame",
               "id": "mZ9Eh",
               "name": "Rodapé",
@@ -923,10 +737,8 @@
                       "type": "frame",
                       "id": "j1p3Z",
                       "name": "Contador",
-                      "fill": "#FFFFFF0D",
+                      "fill": "#15152eff",
                       "cornerRadius": 999,
-                      "stroke": "$border-faint",
-                      "strokeWidth": 1,
                       "padding": [
                         2,
                         8
@@ -952,7 +764,7 @@
                   "name": "Fechar",
                   "width": 26,
                   "height": 26,
-                  "fill": "#FFFFFF08",
+                  "fill": "$bg-surface",
                   "cornerRadius": 7,
                   "justifyContent": "center",
                   "alignItems": "center",
@@ -1004,14 +816,6 @@
                   "fontWeight": "normal"
                 }
               ]
-            },
-            {
-              "type": "rectangle",
-              "id": "V8knyl",
-              "name": "Divisor",
-              "fill": "$border-faint",
-              "width": "fill_container",
-              "height": 1
             },
             {
               "type": "frame",
@@ -1177,6 +981,1319 @@
               ]
             }
           ]
+        },
+        {
+          "type": "frame",
+          "id": "FSFgf",
+          "x": 0,
+          "y": 844,
+          "name": "Barra Inferior",
+          "width": 1440,
+          "height": 40,
+          "layout": "none",
+          "children": [
+            {
+              "type": "frame",
+              "id": "Dlkv0",
+              "x": 24,
+              "y": 0,
+              "name": "Campo de Busca",
+              "width": 342,
+              "height": 40,
+              "fill": "$bg-canvas",
+              "cornerRadius": 11,
+              "effect": [
+                {
+                  "type": "background_blur",
+                  "radius": 24
+                },
+                {
+                  "type": "shadow",
+                  "shadowType": "outer",
+                  "color": "#00000080",
+                  "offset": {
+                    "x": 0,
+                    "y": 10
+                  },
+                  "blur": 28,
+                  "spread": -10
+                }
+              ],
+              "gap": 8,
+              "padding": [
+                0,
+                12
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "i8w0dC",
+                  "name": "Busca Esquerda",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "g5mBq",
+                      "name": "Ícone Busca",
+                      "width": 15,
+                      "height": 15,
+                      "icon": "search",
+                      "library": "lucide",
+                      "fill": "$text-tertiary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "g9FRh",
+                      "name": "Placeholder",
+                      "fill": "$text-tertiary",
+                      "content": "Buscar endereço, hidrante, via…",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "mevLP",
+                  "name": "Atalho",
+                  "fill": "$text-tertiary",
+                  "content": "⌘K",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "TEaQg",
+              "x": 0,
+              "y": 0,
+              "name": "Camada Central",
+              "width": 1440,
+              "height": 40,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "HSBPK",
+                  "name": "Navegador de Cidades",
+                  "height": 40,
+                  "fill": "$bg-canvas",
+                  "cornerRadius": 11,
+                  "effect": [
+                    {
+                      "type": "background_blur",
+                      "radius": 24
+                    },
+                    {
+                      "type": "shadow",
+                      "shadowType": "outer",
+                      "color": "#00000080",
+                      "offset": {
+                        "x": 0,
+                        "y": 10
+                      },
+                      "blur": 28,
+                      "spread": -10
+                    }
+                  ],
+                  "gap": 4,
+                  "padding": [
+                    0,
+                    5
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "YWnSK",
+                      "name": "Cidade — Região",
+                      "height": 32,
+                      "cornerRadius": 8,
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "v3IzEh",
+                          "name": "Rótulo",
+                          "fill": "$text-secondary",
+                          "content": "Região",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "w1INpd",
+                      "name": "Cidade Ativa — Marília",
+                      "height": 32,
+                      "fill": "$accent",
+                      "cornerRadius": 8,
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#FF6A2B26",
+                        "blur": 12
+                      },
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "EtcU7",
+                          "name": "Rótulo",
+                          "fill": "$text-primary",
+                          "content": "Marília",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Dlio0",
+                      "name": "Cidade — Garça",
+                      "height": 32,
+                      "cornerRadius": 8,
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "rXe3Z",
+                          "name": "Rótulo",
+                          "fill": "$text-secondary",
+                          "content": "Garça",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "xzXym",
+      "x": 1858,
+      "y": 36,
+      "name": "F.O.G.O. — Splash / Carregamento",
+      "clip": true,
+      "width": "fill_container(800)",
+      "height": 500,
+      "cornerRadius": 20,
+      "layout": "none",
+      "children": [
+        {
+          "type": "frame",
+          "id": "Rplhy",
+          "x": 0,
+          "y": 0,
+          "name": "Card Splash",
+          "clip": true,
+          "width": 800,
+          "height": 500,
+          "fill": "$bg-canvas",
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#00000000"
+          },
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "BAkZt",
+              "name": "Metade Escura · Marca",
+              "width": 330,
+              "height": 500,
+              "fill": "$bg-canvas",
+              "layout": "vertical",
+              "padding": [
+                40,
+                36
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "group",
+                  "id": "dKyqU",
+                  "layout": "vertical",
+                  "gap": 20,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "vpghF",
+                      "name": "Bloco Marca",
+                      "height": 335.2975269130055,
+                      "layout": "vertical",
+                      "gap": 20,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "group",
+                          "id": "buSB0",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "sB8KW",
+                              "x": 0,
+                              "y": 132,
+                              "name": "Subtítulo",
+                              "fill": "$text-tertiary",
+                              "content": "OPERAÇÕES COM BASE CARTOGRÁFICA 3D",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 8.5,
+                              "fontWeight": "normal",
+                              "letterSpacing": 2.5
+                            },
+                            {
+                              "type": "frame",
+                              "id": "EdUDN",
+                              "x": 101.5,
+                              "y": 0,
+                              "name": "Marca",
+                              "width": 56,
+                              "height": 56,
+                              "fill": "$accent",
+                              "cornerRadius": 14,
+                              "effect": {
+                                "type": "shadow",
+                                "shadowType": "outer",
+                                "color": "#0fc3ff61",
+                                "offset": {
+                                  "x": 0,
+                                  "y": 6
+                                },
+                                "blur": 24,
+                                "spread": -6
+                              },
+                              "layout": "vertical",
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "VkFmg",
+                                  "name": "Chama",
+                                  "width": 28,
+                                  "height": 28,
+                                  "icon": "flame",
+                                  "library": "lucide",
+                                  "fill": "#FFFFFF"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "J6OvZ9",
+                              "x": 74,
+                              "y": 76,
+                              "name": "Logotipo",
+                              "fill": "$text-primary",
+                              "content": "FOGO",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 30,
+                              "fontWeight": "700",
+                              "letterSpacing": 6
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "EyCkH",
+                          "name": "Bloco Loading",
+                          "width": "fill_container",
+                          "height": 60.53983124818156,
+                          "layout": "vertical",
+                          "gap": 12,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "gRLd3",
+                              "name": "Linha Status",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "roDkG",
+                                  "name": "Status",
+                                  "fill": "$text-primary",
+                                  "content": "CARREGANDO MAPA…",
+                                  "fontFamily": "$font-ui",
+                                  "fontSize": 10,
+                                  "fontWeight": "normal",
+                                  "letterSpacing": 2
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "Xn9jo",
+                                  "name": "Percentual",
+                                  "fill": "#0fc3ff",
+                                  "content": "42%",
+                                  "fontFamily": "$font-mono",
+                                  "fontSize": 10,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "TNQCZ",
+                              "name": "Trilha",
+                              "width": "fill_container",
+                              "height": 2,
+                              "fill": "#FFFFFF1F",
+                              "cornerRadius": 1,
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "rectangle",
+                                  "cornerRadius": 1,
+                                  "id": "wyoD5",
+                                  "x": 0,
+                                  "y": 0,
+                                  "name": "Progresso",
+                                  "fill": "$bg-active-surface",
+                                  "width": 108,
+                                  "height": 2
+                                },
+                                {
+                                  "type": "ellipse",
+                                  "id": "x3yjBm",
+                                  "x": 104,
+                                  "y": -1.5,
+                                  "name": "Cabeça",
+                                  "fill": "#B3E9FF",
+                                  "width": 5,
+                                  "height": 5
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "eRcql",
+                  "name": "Bloco Versão",
+                  "width": 223,
+                  "height": 42,
+                  "layout": "vertical",
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "teKpH",
+                      "name": "Versão",
+                      "fill": "$text-tertiary",
+                      "content": "VERSÃO 2026.10 · BUILD 31027",
+                      "fontFamily": "$font-mono",
+                      "fontSize": 8,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "w89YoU",
+                      "name": "Créditos",
+                      "fill": "$text-tertiary",
+                      "content": "© 2026 Instrum Labs · Dados OSM / Overture",
+                      "fontFamily": "$font-mono",
+                      "fontSize": 8,
+                      "fontWeight": "normal",
+                      "letterSpacing": 0.5
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "S2W7S",
+              "name": "Metade Clara · Mapa",
+              "clip": true,
+              "width": 470,
+              "height": 499,
+              "fill": "#d9d9d9ff",
+              "layout": "none",
+              "children": [
+                {
+                  "type": "ellipse",
+                  "id": "ClAfP",
+                  "x": -60,
+                  "y": -70,
+                  "name": "Lavagem Azul",
+                  "opacity": 0.16,
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "radial",
+                    "enabled": true,
+                    "rotation": 0,
+                    "size": {
+                      "width": 1,
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#0fc3ff",
+                        "position": 0
+                      },
+                      {
+                        "color": "#0fc3ff00",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "width": 400,
+                  "height": 400
+                },
+                {
+                  "type": "rectangle",
+                  "id": "oDzNY",
+                  "x": 0,
+                  "y": 90,
+                  "name": "Rua H 90",
+                  "fill": "#0fc3ff1A",
+                  "width": 500,
+                  "height": 1.5
+                },
+                {
+                  "type": "rectangle",
+                  "id": "aepvN",
+                  "x": 0,
+                  "y": 180,
+                  "name": "Rua H 180",
+                  "fill": "#0fc3ff1A",
+                  "width": 500,
+                  "height": 1.5
+                },
+                {
+                  "type": "rectangle",
+                  "id": "CfFto",
+                  "x": 70,
+                  "y": 0,
+                  "name": "Rua V 70",
+                  "fill": "#0fc3ff1A",
+                  "width": 1.5,
+                  "height": 600
+                },
+                {
+                  "type": "rectangle",
+                  "id": "MCde9",
+                  "x": 160,
+                  "y": 0,
+                  "name": "Rua V 160",
+                  "fill": "#0fc3ff1A",
+                  "width": 1.5,
+                  "height": 600
+                },
+                {
+                  "type": "rectangle",
+                  "id": "cy3gi",
+                  "x": 340,
+                  "y": 0,
+                  "name": "Rua V 340",
+                  "fill": "#0fc3ff1A",
+                  "width": 1.5,
+                  "height": 600
+                },
+                {
+                  "type": "rectangle",
+                  "id": "wFIxH",
+                  "x": 430,
+                  "y": 0,
+                  "name": "Rua V 430",
+                  "fill": "#0fc3ff1A",
+                  "width": 1.5,
+                  "height": 600
+                },
+                {
+                  "type": "rectangle",
+                  "id": "TfoiZ",
+                  "x": 0,
+                  "y": 250,
+                  "name": "Avenida H",
+                  "fill": "#0fc3ff38",
+                  "width": 500,
+                  "height": 2.5
+                },
+                {
+                  "type": "rectangle",
+                  "id": "hv2mr",
+                  "x": 250,
+                  "y": 0,
+                  "name": "Avenida V",
+                  "fill": "#0fc3ff38",
+                  "width": 2.5,
+                  "height": 600
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 2,
+                  "id": "pXe64",
+                  "x": 86,
+                  "y": 104,
+                  "name": "Quarteirão",
+                  "fill": "#0fc3ff14",
+                  "width": 64,
+                  "height": 56,
+                  "stroke": "#00000000",
+                  "strokeWidth": 1
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 2,
+                  "id": "srg9v",
+                  "x": 166,
+                  "y": 104,
+                  "name": "Quarteirão",
+                  "fill": "#0fc3ff14",
+                  "width": 70,
+                  "height": 56,
+                  "stroke": "#00000000",
+                  "strokeWidth": 1
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 2,
+                  "id": "uWnmN",
+                  "x": 86,
+                  "y": 196,
+                  "name": "Quarteirão",
+                  "fill": "#0fc3ff14",
+                  "width": 64,
+                  "height": 60,
+                  "stroke": "#00000000",
+                  "strokeWidth": 1
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 2,
+                  "id": "voZla",
+                  "x": 330,
+                  "y": 104,
+                  "name": "Quarteirão",
+                  "fill": "#0fc3ff14",
+                  "width": 90,
+                  "height": 56,
+                  "stroke": "#00000000",
+                  "strokeWidth": 1
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 2,
+                  "id": "sYHRv",
+                  "x": 330,
+                  "y": 196,
+                  "name": "Quarteirão",
+                  "fill": "#0fc3ff14",
+                  "width": 90,
+                  "height": 60,
+                  "stroke": "#00000000",
+                  "strokeWidth": 1
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 2,
+                  "id": "sR38h",
+                  "x": 86,
+                  "y": 376,
+                  "name": "Quarteirão",
+                  "fill": "#0fc3ff14",
+                  "width": 150,
+                  "height": 56,
+                  "stroke": "#00000000",
+                  "strokeWidth": 1
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 2,
+                  "id": "wmJLJ",
+                  "x": 340,
+                  "y": 376,
+                  "name": "Quarteirão",
+                  "fill": "#0fc3ff14",
+                  "width": 76,
+                  "height": 56,
+                  "stroke": "#00000000",
+                  "strokeWidth": 1
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 2,
+                  "id": "Q5l9nf",
+                  "x": 166,
+                  "y": 286,
+                  "name": "Quarteirão",
+                  "fill": "#FF6A2B26",
+                  "width": 70,
+                  "height": 60,
+                  "stroke": "$accent-dim",
+                  "strokeWidth": 1
+                },
+                {
+                  "type": "ellipse",
+                  "id": "t5b2Yu",
+                  "x": 328,
+                  "y": 384,
+                  "name": "Curva Azul",
+                  "width": 140,
+                  "height": 112,
+                  "stroke": "#0fc3ff2E",
+                  "strokeWidth": 1
+                },
+                {
+                  "type": "ellipse",
+                  "id": "F55Sx",
+                  "x": 290,
+                  "y": 354,
+                  "name": "Curva Azul",
+                  "width": 216,
+                  "height": 173,
+                  "stroke": "#0fc3ff2E",
+                  "strokeWidth": 1
+                },
+                {
+                  "type": "ellipse",
+                  "id": "FQUOR",
+                  "x": 252,
+                  "y": 323,
+                  "name": "Curva Azul",
+                  "width": 292,
+                  "height": 234,
+                  "stroke": "#0fc3ff2E",
+                  "strokeWidth": 1
+                },
+                {
+                  "type": "path",
+                  "id": "LCKal",
+                  "x": 20,
+                  "y": 240,
+                  "name": "Rota Accent",
+                  "geometry": "M0 210c100 0 130-90 230-90 100 0 130-90 200-90",
+                  "viewBox": [
+                    0,
+                    0,
+                    430,
+                    210
+                  ],
+                  "fill": "#00000000",
+                  "width": 430,
+                  "height": 210,
+                  "stroke": "$accent",
+                  "strokeWidth": 3,
+                  "strokeLinecap": "round"
+                },
+                {
+                  "type": "path",
+                  "id": "NZEF5",
+                  "x": 20,
+                  "y": 254,
+                  "name": "Rota Eco",
+                  "opacity": 0.4,
+                  "geometry": "M0 210c100 0 130-90 230-90 100 0 130-90 200-90",
+                  "viewBox": [
+                    0,
+                    0,
+                    430,
+                    210
+                  ],
+                  "fill": "#00000000",
+                  "width": 430,
+                  "height": 210,
+                  "stroke": "#FF6A2B",
+                  "strokeWidth": 1.5
+                },
+                {
+                  "type": "icon",
+                  "id": "AfcDe",
+                  "x": 420,
+                  "y": 242,
+                  "name": "Pin Rota",
+                  "width": 26,
+                  "height": 26,
+                  "icon": "map-pin",
+                  "library": "lucide",
+                  "fill": "$accent"
+                },
+                {
+                  "type": "rectangle",
+                  "id": "D35JSQ",
+                  "x": 228,
+                  "y": 352,
+                  "name": "Losango Rota",
+                  "rotation": 45,
+                  "fill": "$accent",
+                  "width": 10,
+                  "height": 10
+                },
+                {
+                  "type": "ellipse",
+                  "id": "V5AVRT",
+                  "x": 88,
+                  "y": 88,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "wQx9p",
+                  "x": 156,
+                  "y": 88,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "EK3sP",
+                  "x": 224,
+                  "y": 88,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "f7hgOU",
+                  "x": 292,
+                  "y": 88,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "N22tqF",
+                  "x": 360,
+                  "y": 88,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "wLlkF",
+                  "x": 428,
+                  "y": 88,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "Yvvy3",
+                  "x": 88,
+                  "y": 146,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "QiJR1",
+                  "x": 156,
+                  "y": 146,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "v1mS2",
+                  "x": 224,
+                  "y": 146,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "Flxs7",
+                  "x": 292,
+                  "y": 146,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "nfFnF",
+                  "x": 360,
+                  "y": 146,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "b6avg",
+                  "x": 428,
+                  "y": 146,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "dDhND",
+                  "x": 88,
+                  "y": 204,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "LfEti",
+                  "x": 156,
+                  "y": 204,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "KA9Jy",
+                  "x": 224,
+                  "y": 204,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "gwnOm",
+                  "x": 292,
+                  "y": 204,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "Anaph",
+                  "x": 360,
+                  "y": 204,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "jRutR",
+                  "x": 428,
+                  "y": 204,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "sCxHw",
+                  "x": 88,
+                  "y": 262,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "reB8U",
+                  "x": 156,
+                  "y": 262,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "QT7Bm",
+                  "x": 224,
+                  "y": 262,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "xJ9sb",
+                  "x": 292,
+                  "y": 262,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "fQdSa",
+                  "x": 360,
+                  "y": 262,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "H8O5F",
+                  "x": 428,
+                  "y": 262,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "HFSKA",
+                  "x": 88,
+                  "y": 320,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "o21ch",
+                  "x": 156,
+                  "y": 320,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "f8ijvp",
+                  "x": 224,
+                  "y": 320,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "c4YEn",
+                  "x": 292,
+                  "y": 320,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "i1DOHV",
+                  "x": 360,
+                  "y": 320,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "rpWeV",
+                  "x": 428,
+                  "y": 320,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "vpdDv",
+                  "x": 88,
+                  "y": 378,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "NrtGv",
+                  "x": 156,
+                  "y": 378,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "d4Aaa",
+                  "x": 224,
+                  "y": 378,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "WU5Ae",
+                  "x": 292,
+                  "y": 378,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "DuM1y",
+                  "x": 360,
+                  "y": 378,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "ON93k",
+                  "x": 428,
+                  "y": 378,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "wpQeY",
+                  "x": 88,
+                  "y": 436,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "wjy3y",
+                  "x": 156,
+                  "y": 436,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "Emhua",
+                  "x": 224,
+                  "y": 436,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "sfAfV",
+                  "x": 292,
+                  "y": 436,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "e3FjZL",
+                  "x": 360,
+                  "y": 436,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "ellipse",
+                  "id": "a08oz8",
+                  "x": 428,
+                  "y": 436,
+                  "name": "POI Azul",
+                  "opacity": 0.3,
+                  "fill": "#0fc3ff",
+                  "width": 2.4,
+                  "height": 2.4
+                },
+                {
+                  "type": "frame",
+                  "id": "R4lNWT",
+                  "x": 48,
+                  "y": 456,
+                  "name": "Tag Sinal",
+                  "fill": "#01010A99",
+                  "cornerRadius": 4,
+                  "stroke": "#0fc3ff40",
+                  "strokeWidth": 1,
+                  "padding": [
+                    4,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "a3ICKa",
+                      "name": "Tag Texto",
+                      "fill": "#0fc3ff",
+                      "content": "SINAL 07 · ROTA ATIVA",
+                      "fontFamily": "$font-mono",
+                      "fontSize": 9,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "jsvon",
+                  "x": 292,
+                  "y": 464,
+                  "name": "Coordenada",
+                  "fill": "#5E7B94",
+                  "content": "23.5505 S · 46.6333 W",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 9,
+                  "fontWeight": "normal",
+                  "letterSpacing": 1
+                },
+                {
+                  "type": "rectangle",
+                  "id": "DLCdV",
+                  "x": 0,
+                  "y": 310,
+                  "name": "Rua H 310",
+                  "fill": "#0fc3ff1A",
+                  "width": 470,
+                  "height": 1.5
+                },
+                {
+                  "type": "rectangle",
+                  "id": "qBAMB",
+                  "x": 0,
+                  "y": 410,
+                  "name": "Rua H 410",
+                  "fill": "#0fc3ff1A",
+                  "width": 470,
+                  "height": 1.5
+                }
+              ]
+            }
+          ]
         }
       ]
     }
@@ -1200,7 +2317,7 @@
     },
     "accent": {
       "type": "color",
-      "value": "#FF6A2B"
+      "value": "#0fc3ff"
     },
     "accent-dim": {
       "type": "color",
@@ -1223,6 +2340,14 @@
       "value": "Inter"
     },
     "bg-active-surface": {
+      "type": "color",
+      "value": "#0fc3ff"
+    },
+    "font-mono": {
+      "type": "string",
+      "value": "JetBrains Mono"
+    },
+    "color": {
       "type": "color",
       "value": "#0fc3ff"
     }

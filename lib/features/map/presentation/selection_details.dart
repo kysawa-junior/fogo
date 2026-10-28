@@ -2,6 +2,7 @@ import '../../../engine/domain/building.dart';
 import '../../../engine/domain/land_area.dart';
 import '../../../engine/domain/map_feature.dart';
 import '../../../engine/domain/pedestrian_crossing.dart';
+import '../../../engine/domain/poi.dart';
 import '../../../engine/domain/road.dart';
 import '../../../engine/domain/sourced_value.dart';
 
@@ -57,11 +58,11 @@ EntityDetails buildEntityDetails(MapFeature feature) {
       );
     case LandArea area:
       return EntityDetails(
-        title: area.name ?? 'Área ${area.kind.name}',
-        subtitle: 'Área — ${area.kind.name}',
+        title: area.name ?? 'Área ${area.kind.label}',
+        subtitle: 'Área — ${area.kind.label}',
         properties: [
           ('ID', area.id),
-          ('Classe', area.kind.name),
+          ('Classe', area.kind.label),
           if (area.polygons.length > 1)
             ('Polígonos', '${area.polygons.length}'),
           ...area.polygons.indexed
@@ -97,6 +98,20 @@ EntityDetails buildEntityDetails(MapFeature feature) {
                 ? 'desconhecidas'
                 : signal.connectedWayIds.join(', '),
           ),
+        ],
+      );
+    case Poi poi:
+      return EntityDetails(
+        title: poi.name ?? 'Ponto de interesse',
+        subtitle: poi.marker
+            ? 'POI — ${poi.tags['class'] ?? poi.tags['maki'] ?? '?'}'
+            : 'Rótulo — ${poi.tags['class'] ?? '?'}',
+        properties: [
+          ('ID', poi.id),
+          if (poi.tags['class'] != null) ('Classe', poi.tags['class']!),
+          if (poi.tags['maki'] != null) ('Maki', poi.tags['maki']!),
+          if (poi.rank != null) ('Importância (rank)', '${poi.rank}'),
+          ('Origem', '© OpenStreetMap contributors'),
         ],
       );
     default:

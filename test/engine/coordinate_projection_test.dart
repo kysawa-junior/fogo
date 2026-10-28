@@ -69,27 +69,90 @@ void main() {
     expect(union.north, -22.1);
   });
 
-  test('OrbitCamera: clamps e fit por diagonal', () {
+  test('OrbitCamera: clamps nas metas e convergência via tick', () {
     final camera = OrbitCamera(minDistance: 80, maxDistance: 25000);
     camera.elevationRadians = 1.4;
     camera.rotate(0, -1000);
+    camera.tick(1);
     expect(
       camera.elevationRadians,
       allOf(greaterThan(1.4), lessThan(1.5)),
       reason: 'clamp máximo (~85°)',
     );
     camera.rotate(0, 10000);
+    camera.tick(1);
     expect(camera.elevationRadians, greaterThan(0.0), reason: 'clamp mínimo');
 
     camera.zoom(1e9);
-    expect(camera.distanceMeters, camera.minDistance);
+    camera.tick(1);
+    expect(camera.distanceMeters, closeTo(camera.minDistance, 0.01));
     camera.zoom(1e-9);
-    expect(camera.distanceMeters, camera.maxDistance);
+    camera.tick(1);
+    expect(camera.distanceMeters, closeTo(camera.maxDistance, 10));
 
     final wb = Aabb3.minMax(Vector3(-500, 0, -500), Vector3(500, 0, 500));
-    camera.fit(wb);
+    camera.fit(wb, instant: true);
     expect(camera.distanceMeters, closeTo(1000 * 1.15 * math.sqrt2, 1));
     expect(camera.target.x, 0);
     expect(camera.target.z, 0);
+  });
+
+  test('OrbitCamera: metas convergem suavemente (sem saltos)', () {
+    final camera = OrbitCamera();
+    camera.goalDistance = 8000;
+    camera.tick(1 / 60);
+    // Um quadro: aproxima sem alcançar (amortecimento exponencial).
+    expect(camera.distanceMeters, lessThan(8000));
+    expect(camera.distanceMeters, greaterThan(1500));
+    for (var i = 0; i < 120; i++) {
+      camera.tick(1 / 60);
+    }
+    expect(camera.distanceMeters, closeTo(8000, 1.0));
+  });
+
+  test(
+    'OrbitCamera: zoom direcionado aproxima o alvo do ponto sob o cursor',
+    () {
+      final camera = OrbitCamera();
+      camera.goalTarget = Vector3(0, 0, 0);
+      camera.goalDistance = 2000;
+      camera.tick(1);
+      camera.zoomToward(2.0, Vector3(1000, 0, 0));
+      camera.tick(1);
+      expect(
+        camera.goalTarget.x,
+        greaterThan(400),
+        reason: 'alvo desloca na direção do ponto (k = 1 − 1/2 = 0.5)',
+      );
+      expect(camera.goalTarget.x, lessThan(1000), reason: 'não ultrapassa');
+      expect(camera.goalDistance, closeTo(1000, 1));
+    },
+  );
+
+  test('OrbitCamera: frameBounds enquadra a entidade preservando o ângulo', () {
+    final camera = OrbitCamera();
+    camera.goalAzimuth = 1.2;
+    camera.goalElevation = 0.6;
+    camera.goalDistance = 5000;
+    camera.tick(1);
+    final b = Aabb3.minMax(Vector3(100, 0, 100), Vector3(160, 0, 140));
+    camera.frameBounds(b);
+    camera.tick(1);
+    expect(camera.goalTarget.x, closeTo(130, 1e-6));
+    expect(camera.goalTarget.z, closeTo(120, 1e-6));
+    expect(camera.goalAzimuth, 1.2, reason: 'ângulo preservado');
+    // Diagonal ~72 m × margem 2.2 → ~158 m, acima do mínimo.
+    expect(camera.goalDistance, closeTo(72.1 * 2.2, 1));
+  });
+
+  test('OrbitCamera: pan clamped dentro da bounds do alvo', () {
+    final camera = OrbitCamera()
+      ..setTargetBounds(
+        Aabb3.minMax(Vector3(-100, 0, -100), Vector3(100, 0, 100)),
+      );
+    camera.pan(-1e6, -1e6);
+    camera.tick(1);
+    expect(camera.goalTarget.x, lessThanOrEqualTo(100));
+    expect(camera.goalTarget.x, greaterThanOrEqualTo(-100));
   });
 }

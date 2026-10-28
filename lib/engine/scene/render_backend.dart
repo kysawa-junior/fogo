@@ -7,8 +7,12 @@ import 'map_scene.dart';
 /// apenas a implementação concreta (ex.: [FlutterSceneAdapter], na camada
 /// de aplicação) conhece APIs gráficas.
 abstract class RenderBackend {
-  /// Sobe a cena inteira (substitui o conteúdo anterior).
-  Future<void> uploadScene(MapScene scene);
+  /// Sobe a cena inteira (substitui o conteúdo anterior). Fatiada em
+  /// lotes com progresso — nunca trava a main isolate.
+  Future<void> uploadScene(
+    MapScene scene, {
+    void Function(double progress)? onProgress,
+  });
 
   /// Descarrega todos os recursos gráficos.
   Future<void> clear();

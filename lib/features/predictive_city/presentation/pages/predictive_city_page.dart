@@ -45,6 +45,7 @@ class PredictiveCityPage extends ConsumerWidget {
             child: FogoPanel(
               width: 480,
               maxHeightFactor: 0.7,
+              modal: true,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,6 +75,9 @@ class PredictiveCityPage extends ConsumerWidget {
                     icon: LucideIcons.map,
                     variant: FogoButtonVariant.active,
                     expanded: true,
+                    // base-design.pen: CTA de modal, 42px, raio 10.
+                    height: 42,
+                    radius: FogoSpacing.radiusMd,
                     onTap: () => context.go('/'),
                   ),
                 ],

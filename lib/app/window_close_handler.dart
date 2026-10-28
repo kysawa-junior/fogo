@@ -1,7 +1,16 @@
-import 'dart:io' show Platform, exit;
+import 'dart:io' show exit;
 
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/widgets.dart';
 import 'package:window_manager/window_manager.dart';
+
+bool get isDesktopWindowPlatform => switch (defaultTargetPlatform) {
+  TargetPlatform.linux ||
+  TargetPlatform.macOS ||
+  TargetPlatform.windows => true,
+  _ => false,
+};
 
 /// Encerramento controlado do F.O.G.O.
 ///
@@ -12,7 +21,8 @@ import 'package:window_manager/window_manager.dart';
 /// encerrado de forma determinística; nas demais plataformas o caminho
 /// padrão (destroy) é mantido — o bug é específico do embedder Linux.
 Future<void> closeApplication() async {
-  if (Platform.isLinux) {
+  if (!isDesktopWindowPlatform) return;
+  if (defaultTargetPlatform == TargetPlatform.linux) {
     await windowManager.hide();
     exit(0);
   }
@@ -36,12 +46,12 @@ class _WindowCloseHandlerState extends State<WindowCloseHandler>
   @override
   void initState() {
     super.initState();
-    windowManager.addListener(this);
+    if (isDesktopWindowPlatform) windowManager.addListener(this);
   }
 
   @override
   void dispose() {
-    windowManager.removeListener(this);
+    if (isDesktopWindowPlatform) windowManager.removeListener(this);
     super.dispose();
   }
 

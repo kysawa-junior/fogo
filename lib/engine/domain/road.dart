@@ -23,7 +23,12 @@ class Road extends LinearFeature {
   /// Base da conectividade em [RoadNetwork].
   final List<int> nodeRefs;
 
-  String? get name => tags['name'] ?? tags['ref'];
+  String? get name {
+    final name = tags['name'];
+    if (name != null && name.trim().isNotEmpty) return name;
+    final ref = tags['ref'];
+    return ref != null && ref.trim().isNotEmpty ? ref : null;
+  }
 
   bool get isElevated => properties.bridge;
   bool get isUnderground => properties.tunnel;

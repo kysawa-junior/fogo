@@ -1,0 +1,11 @@
+Model Information:
+* title:	Low Poly Fire Truck
+* source:	https://sketchfab.com/3d-models/low-poly-fire-truck-688b7c17a0e54a05b0b2d51a8aee061b
+* author:	jg-3d (https://sketchfab.com/jg-3d)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Low Poly Fire Truck" (https://sketchfab.com/3d-models/low-poly-fire-truck-688b7c17a0e54a05b0b2d51a8aee061b) by jg-3d (https://sketchfab.com/jg-3d) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

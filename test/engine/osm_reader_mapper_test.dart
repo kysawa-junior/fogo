@@ -5,7 +5,8 @@ import 'package:fogo/engine/domain/land_area.dart' show LandAreaKind;
 import 'package:fogo/engine/domain/road_type.dart' show RoadType;
 import 'package:fogo/engine/osm/map_topology_builder.dart';
 import 'package:fogo/engine/osm/osm_elements.dart';
-import 'package:fogo/engine/osm/osm_feature_mapper.dart';
+import 'package:fogo/engine/osm/osm_feature_mapper.dart'
+    show BuildingHeightEstimator, OsmFeatureMapper;
 import 'package:fogo/engine/osm/osm_xml_reader.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xml/xml.dart' show XmlParserException;
@@ -18,11 +19,18 @@ void main() {
       final store = OsmDataStore();
       OsmXmlReader.read(fixtureBytes(), store);
       expect(store.nodeCount, greaterThanOrEqualTo(24));
-      expect(store.wayCount, 11);
-      expect(store.relationCount, 1);
+      // 31 originais + ESTÁDIO way/80 + pitch way/81 (ENG tigela 3D).
+      expect(store.wayCount, 33);
+      expect(store.relationCount, 2);
 
       final way = store.wayById(10)!;
-      expect(way.nodeRefs, [1, 2, 3, 4], reason: 'ordem dos nd preservada');
+      expect(
+        way.nodeRefs,
+        [1, 99, 2, 3, 101, 4],
+        reason:
+            'ordem dos nd preservada (com stop e level crossing '
+            'intercalados na ETAPA 05)',
+      );
       expect(way.tags['highway'], 'residential');
       expect(way.tags['name'], 'Rua Reta');
 
@@ -79,6 +87,45 @@ void main() {
     });
   });
 
+  group('BuildingHeightEstimator (ETAPA 03)', () {
+    final est = BuildingHeightEstimator();
+
+    test('height explícito vence tudo (conhecido)', () {
+      final h = est.estimate({'building': 'house', 'height': '25'});
+      expect(h.isKnown, isTrue);
+      expect(h.value, 25);
+    });
+
+    test('levels estimado; roof:levels/roof:height somam', () {
+      final h = est.estimate({'building:levels': '3'});
+      expect(h.isEstimated, isTrue);
+      expect(h.value, closeTo(9.6, 1e-9));
+      final hRoof = est.estimate({'building:levels': '2', 'roof:levels': '1'});
+      expect(hRoof.value, closeTo(9.6, 1e-9));
+      final hRh = est.estimate({'building:levels': '2', 'roof:height': '2.5'});
+      expect(hRh.value, closeTo(8.9, 1e-9));
+    });
+
+    test('sem altura: categoria documentada, NUNCA valor universal', () {
+      // Alturas distintas por categoria (calibradas com os dados
+      // reais das três cidades; majoradas p/ presença 3D).
+      expect(est.estimate({'building': 'house'}).value, 6);
+      expect(est.estimate({'building': 'church'}).value, 18);
+      expect(est.estimate({'building': 'apartments'}).value, 16);
+      expect(est.estimate({'building': 'school'}).value, 10.5);
+      expect(est.estimate({'building': 'hangar'}).value, 13.5);
+      expect(est.estimate({'building': 'shed'}).value, 3.5);
+      expect(est.estimate({'building': 'roof'}).value, 3.5);
+      // Genérico (yes: 637/653 em Garça) tem o PRÓPRIO padrão.
+      expect(est.estimate({'building': 'yes'}).value, 9);
+      // Categoria desconhecida cai no genérico, não numa constante
+      // mágica universal.
+      expect(est.estimate({'building': 'monumento_exotico'}).value, 9);
+      // Todos defaulted — origem explícita na UI.
+      expect(est.estimate({'building': 'church'}).isDefaulted, isTrue);
+    });
+  });
+
   group('OsmFeatureMapper', () {
     OsmDataStore readFixture() {
       final store = OsmDataStore();
@@ -91,9 +138,9 @@ void main() {
       final road = model.roads.firstWhere((r) => r.id == 'way/10');
       expect(road.name, 'Rua Reta');
       expect(road.type, RoadType.residential);
-      expect(road.points.length, 4);
+      expect(road.points.length, 6);
       expect(road.points.first.longitude, closeTo(-49.95, 1e-9));
-      expect(road.nodeRefs, [1, 2, 3, 4]);
+      expect(road.nodeRefs, [1, 99, 2, 3, 101, 4]);
     });
 
     test('distingue known/estimated/defaulted em largura e altura', () {
@@ -144,10 +191,13 @@ void main() {
       final network = MapTopologyBuilder().build(model, store);
 
       final crossing = model.crossings.firstWhere((c) => c.id == 'node/2');
+      // Modelo CRU (este teste usa o mapper direto): a duplicata
+      // way/42 ainda está presente — o pipeline a remove depois.
       expect(crossing.connectedWayIds, {
+        'way/42',
         'way/10',
         'way/12',
-      }, reason: 'nó 2 pertence às duas vias');
+      }, reason: 'nó 2 pertence às vias (incl. duplicata crua)');
       expect(crossing.headingRadians, isNotNull);
 
       final signal = model.signals.firstWhere((s) => s.id == 'node/26');
@@ -162,6 +212,29 @@ void main() {
       expect(area.name, 'Bosque');
       expect(area.kind, LandAreaKind.forest);
       expect(area.polygons.single.length, 2, reason: 'outer + inner');
+    });
+
+    test('amenity de edifício de interesse não cai em "other"', () {
+      expect(
+        LandAreaKind.fromTags({'amenity': 'fuel'}),
+        LandAreaKind.fuelStation,
+      );
+      expect(LandAreaKind.fromTags({'amenity': 'police'}), LandAreaKind.police);
+      expect(
+        LandAreaKind.fromTags({'amenity': 'clinic'}),
+        LandAreaKind.hospital,
+      );
+      expect(
+        LandAreaKind.fromTags({'amenity': 'place_of_worship'}),
+        LandAreaKind.placeOfWorship,
+      );
+      expect(
+        LandAreaKind.fromTags({'amenity': 'parking'}),
+        LandAreaKind.parking,
+      );
+      // Sem tag conhecida: segue "other" (rótulo PT, sem classe falsa).
+      expect(LandAreaKind.fromTags({}), LandAreaKind.other);
+      expect(LandAreaKind.other.label, 'Outros');
     });
 
     test('way sem tags não vira entidade; way pendente não derruba', () {

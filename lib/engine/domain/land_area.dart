@@ -32,7 +32,36 @@ enum LandAreaKind {
   education,
   sports,
   parking,
+
+  // Reclassificação dos antigos "other": amenity de edifícios de
+  // interesse (tags reais do extrato regional) — hierarquia acima de
+  // parques e água.
+  fuelStation,
+  police,
+  hospital,
+  placeOfWorship,
+  stadium,
   other;
+
+  /// Rótulo em português (painel de seleção; o .name era em inglês).
+  String get label => switch (this) {
+    park => 'Parque',
+    water => 'Água',
+    forest => 'Floresta',
+    farmland => 'Zona agrícola',
+    residential => 'Zona residencial',
+    industrial => 'Zona industrial',
+    commercial => 'Zona comercial',
+    education => 'Educação',
+    sports => 'Esportes',
+    parking => 'Estacionamento',
+    fuelStation => 'Posto de gasolina',
+    police => 'Delegacia',
+    hospital => 'Hospital',
+    placeOfWorship => 'Local religioso',
+    stadium => 'Estádio',
+    other => 'Outros',
+  };
 
   static LandAreaKind fromTags(Map<String, String> tags) {
     final leisure = tags['leisure'];
@@ -52,6 +81,13 @@ enum LandAreaKind {
       switch (tags['landuse']) {
         case 'forest':
           return LandAreaKind.forest;
+        // Vegetação baixa/uso verde: parque (223 ocorrências no
+        // extrato regional — antes caiam em "other" e z-fightavam
+        // com parques coplanares).
+        case 'grass':
+        case 'village_green':
+        case 'recreation_ground':
+          return LandAreaKind.park;
         case 'farmland':
         case 'orchard':
         case 'meadow':
@@ -71,11 +107,28 @@ enum LandAreaKind {
           return LandAreaKind.parking;
       }
     }
+    if (leisure == 'stadium' || leisure == 'arena') {
+      return LandAreaKind.stadium;
+    }
     if (leisure == 'pitch' || leisure == 'sports_centre') {
       return LandAreaKind.sports;
     }
-    if (tags.containsKey('amenity') && tags['amenity'] == 'parking') {
-      return LandAreaKind.parking;
+    // Amenity em área: edifícios de interesse (posto, delegacia,
+    // hospital, templo) — antes caiam no genérico "other".
+    if (tags.containsKey('amenity')) {
+      switch (tags['amenity']) {
+        case 'fuel':
+          return LandAreaKind.fuelStation;
+        case 'police':
+          return LandAreaKind.police;
+        case 'hospital':
+        case 'clinic':
+          return LandAreaKind.hospital;
+        case 'place_of_worship':
+          return LandAreaKind.placeOfWorship;
+        case 'parking':
+          return LandAreaKind.parking;
+      }
     }
     return LandAreaKind.other;
   }

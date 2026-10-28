@@ -11,11 +11,6 @@ struct _MyApplication {
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
-// Called when first Flutter frame received.
-static void first_frame_cb(MyApplication* self, FlView* view) {
-  gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
-}
-
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
@@ -28,8 +23,25 @@ static void my_application_activate(GApplication* application) {
   // o window_manager ocultá-lo. Sem titlebar, o window_manager chama
   // gtk_window_set_decorated(false) e a janela fica sem o sombreado.
   gtk_window_set_title(window, "F.O.G.O.");
+  gtk_window_set_decorated(window, FALSE);
 
-  gtk_window_set_default_size(window, 1280, 720);
+  // Tamanho FINAL no nascimento, limitado à workarea (GTK unidades
+  // lógicas): a superfície EGL nasce uma única vez com o tamanho
+  // definitivo. Resize pós-criação wedgea o pipeline Impeller/Wayland —
+  // evidência (stderr do embedder):
+  //   "Timed out waiting for OpenGL frame of size 1440x900 (have 1x1)"
+  //   Gdk-CRITICAL: gdk_wayland_window_configure: assertion 'width > 0'
+  // (janela nascia 1×1, crescia no reveal — buffer nunca acoplava).
+  // Workarea-clamped: 900 de altura em monitor 1080@125% = 864 lógicos —
+  // o clamp do compositor é outro resize proibido.
+  GdkMonitor* monitor =
+      gdk_display_get_primary_monitor(gdk_display_get_default());
+  GdkRectangle workarea = {0, 0, 1440, 864};
+  if (monitor) {
+    gdk_monitor_get_workarea(monitor, &workarea);
+  }
+  gtk_window_set_default_size(window, MIN(1440, workarea.width),
+                              MIN(900, workarea.height));
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   // F.O.G.O. 3D Engine (Flutter Scene) exige Flutter GPU habilitado.
@@ -46,11 +58,10 @@ static void my_application_activate(GApplication* application) {
   gtk_widget_show(GTK_WIDGET(view));
   gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(view));
 
-  // Show the window when Flutter renders.
-  // Requires the view to be realized so we can start rendering.
-  g_signal_connect_swapped(view, "first-frame", G_CALLBACK(first_frame_cb),
-                           self);
-  gtk_widget_realize(GTK_WIDGET(view));
+  // Mapeada no nascimento pelo RUNNER (window_manager.show do Dart não
+  // mapeia nesta base — o plugin só enxerga a janela depois de mapeada):
+  // o primeiro frame nasce com a janela já mapeada, no tamanho final.
+  gtk_widget_show(GTK_WIDGET(window));
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
 
@@ -115,10 +126,11 @@ static void my_application_class_init(MyApplicationClass* klass) {
 static void my_application_init(MyApplication* self) {}
 
 MyApplication* my_application_new() {
-  // Set the program name to the application ID, which helps various systems
-  // like GTK and desktop environments map this running application to its
-  // corresponding .desktop file. This ensures better integration by allowing
-  // the application to be recognized beyond its binary name.
+  // Set the program name to the application ID, which helps various
+  // systems like GTK and desktop environments map this running
+  // application to its corresponding .desktop file. This ensures better
+  // integration by allowing the application to be recognized beyond its
+  // binary name.
   g_set_prgname(APPLICATION_ID);
 
   return MY_APPLICATION(g_object_new(my_application_get_type(),

@@ -52,9 +52,13 @@ class _WindowButtonState extends State<_WindowButton> {
               borderRadius: BorderRadius.circular(6),
             ),
             child: Center(
-              child: CustomPaint(
-                size: const Size.square(12),
-                painter: _WindowGlyphPainter(widget.action, icon),
+              // Glifo anima a cor junto com o fundo (sem snap).
+              child: FogoAnimatedColor(
+                color: icon,
+                builder: (context, color, _) => CustomPaint(
+                  size: const Size.square(12),
+                  painter: _WindowGlyphPainter(widget.action, color),
+                ),
               ),
             ),
           ),

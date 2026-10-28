@@ -16,6 +16,7 @@ abstract final class AppRouter {
     routes: [
       GoRoute(
         path: '/',
+        // Motor 3D próprio com base regional OSM (sem WebView/Mapbox GL JS).
         pageBuilder: (context, state) => _page(state, const Map3dPage()),
       ),
       GoRoute(
