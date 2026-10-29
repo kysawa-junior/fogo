@@ -14,6 +14,16 @@ Nenhum dado operacional fictício é carregado por padrão.
 > Atribuição: dados © OpenStreetMap contributors (visível no rodapé).
 > Busca geográfica real via Nominatim/OSM.
 
+## Capturas de tela
+
+Carga da base regional única (`.osm.gz`) na abertura do app:
+
+![Tela de carregamento da base regional OSM](screenshots/carga-base-regional.png)
+
+| Visão geral — Marília-SP                   | Modo noturno                            | Modo diurno                             |
+| :----------------------------------------: | :--------------------------------------: | :-------------------------------------: |
+| ![Visão geral de Marília-SP com rótulos](screenshots/marilia-visao-geral.png) | ![Cena noturna com junções e marcações viárias](screenshots/marilia-noturno.png) | ![Cena diurna com travessias e sinalização](screenshots/marilia-diurno.png) |
+
 ## Módulos
 
 | Rota          | Módulo               | Estado nesta etapa                                        |
