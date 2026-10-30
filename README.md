@@ -16,13 +16,13 @@ Nenhum dado operacional fictício é carregado por padrão.
 
 ## Capturas de tela
 
-Carga da base regional única (`.osm.gz`) na abertura do app:
-
-![Tela de carregamento da base regional OSM](screenshots/carga-base-regional.png)
-
-| Visão geral — Marília-SP                   | Modo noturno                            | Modo diurno                             |
-| :----------------------------------------: | :--------------------------------------: | :-------------------------------------: |
-| ![Visão geral de Marília-SP com rótulos](screenshots/marilia-visao-geral.png) | ![Cena noturna com junções e marcações viárias](screenshots/marilia-noturno.png) | ![Cena diurna com travessias e sinalização](screenshots/marilia-diurno.png) |
+| Captura 1 | Captura 2 |
+| :--------: | :--------: |
+| ![Captura de tela 1 do aplicativo F.O.G.O.](screenshots/Captura%20de%20tela%20de%202026-10-30%2015-21-42.png) | ![Captura de tela 2 do aplicativo F.O.G.O.](screenshots/Captura%20de%20tela%20de%202026-10-30%2015-22-08.png) |
+| ![Captura de tela 3 do aplicativo F.O.G.O.](screenshots/Captura%20de%20tela%20de%202026-10-30%2015-22-19.png) | ![Captura de tela 4 do aplicativo F.O.G.O.](screenshots/Captura%20de%20tela%20de%202026-10-30%2015-22-47.png) |
+| ![Captura de tela 5 do aplicativo F.O.G.O.](screenshots/Captura%20de%20tela%20de%202026-10-30%2015-23-33.png) | ![Captura de tela 6 do aplicativo F.O.G.O.](screenshots/Captura%20de%20tela%20de%202026-10-30%2015-23-51.png) |
+| ![Captura de tela 7 do aplicativo F.O.G.O.](screenshots/Captura%20de%20tela%20de%202026-10-30%2015-24-11.png) | ![Captura de tela 8 do aplicativo F.O.G.O.](screenshots/Captura%20de%20tela%20de%202026-10-30%2015-24-23.png) |
+| ![Captura de tela 9 do aplicativo F.O.G.O.](screenshots/Captura%20de%20tela%20de%202026-10-30%2015-24-31.png) | ![Captura de tela 10 do aplicativo F.O.G.O.](screenshots/Captura%20de%20tela%20de%202026-10-30%2015-25-11.png) |
 
 ## Módulos
 
