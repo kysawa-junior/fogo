@@ -1,6 +1,7 @@
 part of 'inventory_page.dart';
 
-/// Card de viatura registrada: tile do tipo, placa, tipo·id e estado.
+/// Card de viatura registrada: tile do tipo, placa, tipo·id e badge de
+/// estado.
 class _VehicleRow extends StatelessWidget {
   const _VehicleRow({required this.vehicle});
 
@@ -11,12 +12,10 @@ class _VehicleRow extends StatelessWidget {
     final Color status = vehicleStatusColor(vehicle.status);
     return Container(
       width: _cardWidth,
-      constraints: const BoxConstraints(minHeight: _cardMinHeight),
-      padding: const EdgeInsets.all(FogoSpacing.md),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: FogoColors.surfaceRaised,
-        borderRadius: BorderRadius.circular(FogoSpacing.radiusMd),
-        border: Border.all(color: FogoColors.border),
+        color: FogoColors.bg,
+        borderRadius: BorderRadius.circular(FogoSpacing.radiusLg),
       ),
       child: Row(
         children: [
@@ -24,33 +23,40 @@ class _VehicleRow extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: status.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(FogoSpacing.radiusSm),
-              border: Border.all(color: status.withValues(alpha: 0.35)),
+              color: status.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(FogoSpacing.radiusMd),
             ),
-            child: Icon(vehicleKindIcon(vehicle.kind), size: 17, color: status),
+            child: Icon(vehicleKindIcon(vehicle.kind), size: 18, color: status),
           ),
           const SizedBox(width: FogoSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   vehicle.plate,
-                  style: FogoText.subtitle,
+                  style: FogoText.subtitle.copyWith(fontSize: 14),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   '${vehicleKindLabel(vehicle.kind)} · ${vehicle.id}',
-                  style: FogoText.caption,
+                  style: FogoText.caption.copyWith(
+                    fontSize: 11.5,
+                    color: FogoColors.textTertiary,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
-          FogoChip(label: vehicleStatusLabel(vehicle.status), color: status),
+          const SizedBox(width: FogoSpacing.sm),
+          _StatusBadge(
+            label: vehicleStatusLabel(vehicle.status),
+            color: status,
+          ),
         ],
       ),
     );

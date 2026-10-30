@@ -27,6 +27,7 @@ class FogoTextField extends StatefulWidget {
     this.bordered = true,
     this.radius,
     this.height,
+    this.accentColor = FogoColors.accent,
   });
 
   final String? label;
@@ -62,6 +63,10 @@ class FogoTextField extends StatefulWidget {
   /// (base-design.pen: busca do rodapé usa 40).
   final double? height;
 
+  /// Cor de foco (borda, cursor e seleção). Telas sem laranja no design
+  /// (acento ciano do base-design.pen) passam `FogoColors.activeSurface`.
+  final Color accentColor;
+
   @override
   State<FogoTextField> createState() => _FogoTextFieldState();
 }
@@ -93,7 +98,7 @@ class _FogoTextFieldState extends State<FogoTextField> {
     final Color border = hasError
         ? FogoColors.statusCritical
         : _focused
-        ? FogoColors.accent
+        ? widget.accentColor
         : FogoColors.border;
     final double effectiveRadius = widget.radius ?? FogoSpacing.radiusSm;
     return SizedBox(
@@ -153,8 +158,8 @@ class _FogoTextFieldState extends State<FogoTextField> {
                         controller: widget.controller,
                         focusNode: _focus,
                         style: FogoText.body,
-                        cursorColor: FogoColors.accent,
-                        selectionColor: FogoColors.accent.withValues(
+                        cursorColor: widget.accentColor,
+                        selectionColor: widget.accentColor.withValues(
                           alpha: 0.35,
                         ),
                         backgroundCursorColor: FogoColors.textDisabled,

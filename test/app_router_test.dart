@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fogo/app/router/app_router.dart';
-import 'package:fogo/features/inventory/presentation/pages/inventory_page/inventory_page.dart';
 import 'package:fogo/features/map/presentation/pages/map_3d_page/map_3d_page.dart';
 import 'package:fogo/features/predictive_city/presentation/pages/predictive_city_page.dart';
 
@@ -23,7 +22,9 @@ void main() {
 
       // Rota '/' é a Central de Operações no Motor 3D (base regional OSM).
       expect(_pageFor('/', context), isA<Map3dPage>());
-      expect(_pageFor('/inventory', context), isA<InventoryPage>());
+      // '/inventory' NÃO é uma tela: é o workspace com o card flutuante
+      // do inventário já aberto.
+      expect(_pageFor('/inventory', context), isA<Map3dPage>());
       expect(_pageFor('/predictive', context), isA<PredictiveCityPage>());
     },
   );

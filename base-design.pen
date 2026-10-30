@@ -2296,6 +2296,1097 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "XoIYX",
+      "x": 2738,
+      "y": 36,
+      "name": "Tela de Inventário",
+      "width": 1100,
+      "height": 600,
+      "fill": "#01010a",
+      "layout": "none",
+      "children": [
+        {
+          "type": "frame",
+          "id": "h78Yhw",
+          "x": 0,
+          "y": 0,
+          "name": "Card Flutuante",
+          "width": 1100,
+          "height": 600,
+          "fill": "$bg-surface",
+          "cornerRadius": 26,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#000000B3",
+            "offset": {
+              "x": 0,
+              "y": 26
+            },
+            "blur": 64,
+            "spread": -18
+          },
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "LAlZ3",
+              "name": "Área Principal",
+              "width": "fill_container",
+              "height": 600,
+              "layout": "vertical",
+              "gap": 24,
+              "padding": [
+                30,
+                40,
+                22,
+                40
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "sbwmj",
+                  "name": "Cabeçalho da Página",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "PQK3Z",
+                      "name": "Bloco de Identificação",
+                      "gap": 14,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "TmpVX",
+                          "name": "Títulos",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "cFa67",
+                              "name": "Título Principal",
+                              "fill": "$text-primary",
+                              "content": "Inventário Inteligente",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 28,
+                              "fontWeight": "700",
+                              "letterSpacing": -0.4
+                            },
+                            {
+                              "type": "text",
+                              "id": "s0Ll1i",
+                              "name": "Subtítulo",
+                              "fill": "$text-secondary",
+                              "content": "Catálogo de ativos conectados - fogo-server",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 13
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "JffSw",
+                      "name": "Ações de Cabeçalho",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "UQSvh",
+                          "name": "Botão Atualizar",
+                          "width": 36,
+                          "height": 36,
+                          "fill": "#FFFFFF0A",
+                          "cornerRadius": 10,
+                          "stroke": "#00000000",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "NnsD4",
+                              "name": "Ícone Atualizar",
+                              "width": 15,
+                              "height": 15,
+                              "icon": "refresh-cw",
+                              "library": "lucide",
+                              "fill": "$text-primary"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "fTdIG",
+                          "name": "Campo de Busca",
+                          "width": 360,
+                          "height": 42,
+                          "fill": "$bg-canvas",
+                          "cornerRadius": 12,
+                          "gap": 9,
+                          "padding": [
+                            0,
+                            12
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "pI6S6",
+                              "name": "Ícone Lupa",
+                              "width": 15,
+                              "height": 15,
+                              "icon": "search",
+                              "library": "lucide",
+                              "fill": "$text-tertiary"
+                            },
+                            {
+                              "type": "text",
+                              "id": "R3tLB",
+                              "name": "Placeholder de Busca",
+                              "fill": "#8A91B4",
+                              "content": "Buscar por nome, id ou placa",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 13
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "tQkxT",
+                  "name": "Resumo de Métricas",
+                  "width": "fill_container",
+                  "fill": "$bg-canvas",
+                  "cornerRadius": 18,
+                  "gap": 12,
+                  "padding": [
+                    14,
+                    18
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "avVsv",
+                      "name": "Métrica — EQUIPAMENTOS",
+                      "width": "fill_container",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 2,
+                          "id": "PMb5C",
+                          "name": "Barra de Acento",
+                          "fill": "#F4F5FA",
+                          "width": 3,
+                          "height": 22
+                        },
+                        {
+                          "type": "frame",
+                          "id": "V0KPbX",
+                          "name": "Textos da Métrica",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "htWRh",
+                              "name": "Valor",
+                              "fill": "$text-primary",
+                              "content": "1",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 26,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "F6LJl",
+                              "name": "Rótulo",
+                              "fill": "$text-tertiary",
+                              "content": "EQUIPAMENTOS",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 9.5,
+                              "fontWeight": "600",
+                              "letterSpacing": 1.5
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "i0f0b",
+                      "name": "Métrica — DISPONÍVEIS",
+                      "width": "fill_container",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 2,
+                          "id": "XO4MI",
+                          "name": "Barra de Acento",
+                          "fill": "#00E5FF",
+                          "width": 3,
+                          "height": 22
+                        },
+                        {
+                          "type": "frame",
+                          "id": "dKzaM",
+                          "name": "Textos da Métrica",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "eOJ6Z",
+                              "name": "Valor",
+                              "fill": "$accent",
+                              "content": "1",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 26,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "p1tuv",
+                              "name": "Rótulo",
+                              "fill": "$text-tertiary",
+                              "content": "DISPONÍVEIS",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 9.5,
+                              "fontWeight": "600",
+                              "letterSpacing": 1.5
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "IMlU8",
+                      "name": "Métrica — ATENÇÃO",
+                      "width": "fill_container",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 2,
+                          "id": "jx42w",
+                          "name": "Barra de Acento",
+                          "fill": "#F59E0B",
+                          "width": 3,
+                          "height": 22
+                        },
+                        {
+                          "type": "frame",
+                          "id": "mEvrd",
+                          "name": "Textos da Métrica",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "wLocD",
+                              "name": "Valor",
+                              "fill": "#F59E0B",
+                              "content": "0",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 26,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "a0G7I",
+                              "name": "Rótulo",
+                              "fill": "$text-tertiary",
+                              "content": "ATENÇÃO",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 9.5,
+                              "fontWeight": "600",
+                              "letterSpacing": 1.5
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "PwMuq",
+                      "name": "Métrica — INDISPONÍVEIS",
+                      "width": "fill_container",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 2,
+                          "id": "kBEKj",
+                          "name": "Barra de Acento",
+                          "fill": "#EF4444",
+                          "width": 3,
+                          "height": 22
+                        },
+                        {
+                          "type": "frame",
+                          "id": "RPTUH",
+                          "name": "Textos da Métrica",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "zKlXH",
+                              "name": "Valor",
+                              "fill": "#EF4444",
+                              "content": "0",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 26,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "a9mHkh",
+                              "name": "Rótulo",
+                              "fill": "$text-tertiary",
+                              "content": "INDISPONÍVEIS",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 9.5,
+                              "fontWeight": "600",
+                              "letterSpacing": 1.5
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "iiRnw",
+                      "name": "Métrica — MANUTENÇÃO",
+                      "width": "fill_container",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 2,
+                          "id": "ReqkC",
+                          "name": "Barra de Acento",
+                          "fill": "#3B82F6",
+                          "width": 3,
+                          "height": 22
+                        },
+                        {
+                          "type": "frame",
+                          "id": "XZ3Pl",
+                          "name": "Textos da Métrica",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "kDL12",
+                              "name": "Valor",
+                              "fill": "#3B82F6",
+                              "content": "0",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 26,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "c5vbf",
+                              "name": "Rótulo",
+                              "fill": "$text-tertiary",
+                              "content": "MANUTENÇÃO",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 9.5,
+                              "fontWeight": "600",
+                              "letterSpacing": 1.5
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Wz0ti",
+                  "name": "Barra de Filtros",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "HT8jG",
+                      "name": "Controles de Estado",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "yQMvH",
+                          "name": "Rótulo Estado",
+                          "fill": "$text-tertiary",
+                          "content": "ESTADO",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 9.5,
+                          "fontWeight": "700",
+                          "letterSpacing": 1.8
+                        },
+                        {
+                          "type": "frame",
+                          "id": "PAH5U",
+                          "name": "Filtros",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "N75wxP",
+                              "name": "Filtro — Todos",
+                              "height": 30,
+                              "fill": "#00B4D8",
+                              "cornerRadius": 15,
+                              "stroke": "#00000000",
+                              "padding": [
+                                0,
+                                13
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "p4nFWy",
+                                  "name": "Rótulo",
+                                  "fill": "#001018",
+                                  "content": "Todos",
+                                  "fontFamily": "$font-ui",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "bh2pk",
+                              "name": "Filtro — Disponível",
+                              "height": 30,
+                              "fill": "#FFFFFF08",
+                              "cornerRadius": 15,
+                              "stroke": "#00000000",
+                              "padding": [
+                                0,
+                                13
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "i3sJdv",
+                                  "name": "Rótulo",
+                                  "fill": "$text-secondary",
+                                  "content": "Disponível",
+                                  "fontFamily": "$font-ui",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "p2StBY",
+                              "name": "Filtro — Atenção",
+                              "height": 30,
+                              "fill": "#FFFFFF08",
+                              "cornerRadius": 15,
+                              "stroke": "#00000000",
+                              "padding": [
+                                0,
+                                13
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "cK0aH",
+                                  "name": "Rótulo",
+                                  "fill": "$text-secondary",
+                                  "content": "Atenção",
+                                  "fontFamily": "$font-ui",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "QgyI9",
+                              "name": "Filtro — Indisponível",
+                              "height": 30,
+                              "fill": "#FFFFFF08",
+                              "cornerRadius": 15,
+                              "stroke": "#00000000",
+                              "padding": [
+                                0,
+                                13
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "N7uxmw",
+                                  "name": "Rótulo",
+                                  "fill": "$text-secondary",
+                                  "content": "Indisponível",
+                                  "fontFamily": "$font-ui",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "LP01I",
+                              "name": "Filtro — Manutenção",
+                              "height": 30,
+                              "fill": "#FFFFFF08",
+                              "cornerRadius": 15,
+                              "stroke": "#00000000",
+                              "padding": [
+                                0,
+                                13
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "H9C8e5",
+                                  "name": "Rótulo",
+                                  "fill": "$text-secondary",
+                                  "content": "Manutenção",
+                                  "fontFamily": "$font-ui",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "cmSFS",
+                      "name": "Resumo de Contagem",
+                      "fill": "$text-tertiary",
+                      "content": "1 de 1 equipamentos - 2 de 2 viaturas",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 11
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "k5PQzT",
+                  "name": "Lista de Ativos",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 20,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Iwf2Y",
+                      "name": "Seção — Equipamentos",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "nB2lx",
+                          "name": "Título de Seção",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 2,
+                              "id": "rafRN",
+                              "name": "Barra de Acento",
+                              "fill": "$accent",
+                              "width": 3,
+                              "height": 14
+                            },
+                            {
+                              "type": "text",
+                              "id": "G7eK5",
+                              "name": "Título",
+                              "fill": "$text-primary",
+                              "content": "EQUIPAMENTOS",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 11,
+                              "fontWeight": "700",
+                              "letterSpacing": 2.4
+                            },
+                            {
+                              "type": "frame",
+                              "id": "HQsMW",
+                              "name": "Contagem",
+                              "height": 18,
+                              "fill": "#FFFFFF08",
+                              "cornerRadius": 9,
+                              "padding": [
+                                0,
+                                7
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "eQihG",
+                                  "name": "Valor",
+                                  "fill": "$text-tertiary",
+                                  "content": "1",
+                                  "fontFamily": "$font-ui",
+                                  "fontSize": 10,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "lKEqu",
+                          "name": "Card — Semaforo Centro",
+                          "width": 300,
+                          "fill": "$bg-canvas",
+                          "cornerRadius": 12,
+                          "padding": [
+                            12,
+                            14
+                          ],
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "jUXjk",
+                              "name": "Identidade do Ativo",
+                              "gap": 12,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "G07Lu",
+                                  "name": "Tile de Ícone — Semáforo",
+                                  "width": 36,
+                                  "height": 36,
+                                  "fill": "#10B9811A",
+                                  "cornerRadius": 10,
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "fX24d",
+                                      "name": "Ícone Semáforo",
+                                      "width": 18,
+                                      "height": 18,
+                                      "icon": "traffic-cone",
+                                      "library": "lucide",
+                                      "fill": "#10B981"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "nZ5Zh",
+                                  "name": "Textos do Ativo",
+                                  "layout": "vertical",
+                                  "gap": 2,
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "f2vuk",
+                                      "name": "Nome",
+                                      "fill": "$text-primary",
+                                      "content": "Semaforo Centro",
+                                      "fontFamily": "$font-ui",
+                                      "fontSize": 14,
+                                      "fontWeight": "600"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "K9hKOP",
+                                      "name": "Metadados",
+                                      "fill": "#8A91B4",
+                                      "content": "Semáforo · EQ-001",
+                                      "fontFamily": "$font-ui",
+                                      "fontSize": 11.5
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Q8cAH4",
+                              "name": "Badge de Status",
+                              "height": 26,
+                              "fill": "#10B98114",
+                              "cornerRadius": 13,
+                              "stroke": "#00000000",
+                              "gap": 6,
+                              "padding": [
+                                0,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "ellipse",
+                                  "id": "fXQDG",
+                                  "name": "Ponto de Status",
+                                  "fill": "#10B981",
+                                  "width": 5,
+                                  "height": 5
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "YIzC5",
+                                  "name": "Rótulo de Status",
+                                  "fill": "#10B981",
+                                  "content": "Disponível",
+                                  "fontFamily": "$font-ui",
+                                  "fontSize": 11.5,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "x8v8Q",
+                      "name": "Seção — Viaturas",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "uNbLA",
+                          "name": "Título de Seção",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 2,
+                              "id": "whVaX",
+                              "name": "Barra de Acento",
+                              "fill": "$accent",
+                              "width": 3,
+                              "height": 14
+                            },
+                            {
+                              "type": "text",
+                              "id": "Zn0ka",
+                              "name": "Título",
+                              "fill": "$text-primary",
+                              "content": "VIATURAS",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 11,
+                              "fontWeight": "700",
+                              "letterSpacing": 2.4
+                            },
+                            {
+                              "type": "frame",
+                              "id": "ydnXX",
+                              "name": "Contagem",
+                              "height": 18,
+                              "fill": "#FFFFFF08",
+                              "cornerRadius": 9,
+                              "padding": [
+                                0,
+                                7
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "xJwP9",
+                                  "name": "Valor",
+                                  "fill": "$text-tertiary",
+                                  "content": "2",
+                                  "fontFamily": "$font-ui",
+                                  "fontSize": 10,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Kj4e0",
+                          "name": "Grade de Viaturas",
+                          "width": "fill_container",
+                          "gap": 16,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "k1Ylf8",
+                              "name": "Card — ABC1D23",
+                              "width": 300,
+                              "fill": "$bg-canvas",
+                              "cornerRadius": 12,
+                              "padding": [
+                                12,
+                                14
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "EBRJM",
+                                  "name": "Identidade do Ativo",
+                                  "gap": 12,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "GY2gt",
+                                      "name": "Tile de Ícone",
+                                      "width": 36,
+                                      "height": 36,
+                                      "fill": "#F59E0B1A",
+                                      "cornerRadius": 10,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "icon",
+                                          "id": "LIvM4",
+                                          "name": "Ícone ABC1D23",
+                                          "width": 18,
+                                          "height": 18,
+                                          "icon": "shield",
+                                          "library": "lucide",
+                                          "fill": "#F59E0B"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "p8itBA",
+                                      "name": "Textos do Ativo",
+                                      "layout": "vertical",
+                                      "gap": 2,
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "xj1uu",
+                                          "name": "Nome",
+                                          "fill": "$text-primary",
+                                          "content": "ABC1D23",
+                                          "fontFamily": "$font-ui",
+                                          "fontSize": 14,
+                                          "fontWeight": "600"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "ITrcG",
+                                          "name": "Metadados",
+                                          "fill": "#8A91B4",
+                                          "content": "Polícia · VT-001",
+                                          "fontFamily": "$font-ui",
+                                          "fontSize": 11.5
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "Zro1Z",
+                                  "name": "Badge de Status",
+                                  "height": 26,
+                                  "fill": "#F59E0B14",
+                                  "cornerRadius": 13,
+                                  "stroke": "#00000000",
+                                  "gap": 6,
+                                  "padding": [
+                                    0,
+                                    10
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "ellipse",
+                                      "id": "HyNM1",
+                                      "name": "Ponto de Status",
+                                      "fill": "#F59E0B",
+                                      "width": 5,
+                                      "height": 5
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "lC2Fq",
+                                      "name": "Rótulo de Status",
+                                      "fill": "#F59E0B",
+                                      "content": "Em manutenção",
+                                      "fontFamily": "$font-ui",
+                                      "fontSize": 11.5,
+                                      "fontWeight": "500"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "RpczX",
+                              "name": "Card — DEF5678",
+                              "width": 300,
+                              "fill": "$bg-canvas",
+                              "cornerRadius": 12,
+                              "padding": [
+                                12,
+                                14
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "M9a8Rg",
+                                  "name": "Identidade do Ativo",
+                                  "gap": 12,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "JY2Ug",
+                                      "name": "Tile de Ícone",
+                                      "width": 36,
+                                      "height": 36,
+                                      "fill": "#3B82F61A",
+                                      "cornerRadius": 10,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "icon",
+                                          "id": "O6jalp",
+                                          "name": "Ícone DEF5678",
+                                          "width": 18,
+                                          "height": 18,
+                                          "icon": "flame",
+                                          "library": "lucide",
+                                          "fill": "#3B82F6"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "AZ7sz",
+                                      "name": "Textos do Ativo",
+                                      "layout": "vertical",
+                                      "gap": 2,
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "vLRiq",
+                                          "name": "Nome",
+                                          "fill": "$text-primary",
+                                          "content": "DEF5678",
+                                          "fontFamily": "$font-ui",
+                                          "fontSize": 14,
+                                          "fontWeight": "600"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "y0mplm",
+                                          "name": "Metadados",
+                                          "fill": "#8A91B4",
+                                          "content": "Bombeiro · VT-002",
+                                          "fontFamily": "$font-ui",
+                                          "fontSize": 11.5
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "FaQCw",
+                                  "name": "Badge de Status",
+                                  "height": 26,
+                                  "fill": "#3B82F614",
+                                  "cornerRadius": 13,
+                                  "stroke": "#00000000",
+                                  "gap": 6,
+                                  "padding": [
+                                    0,
+                                    10
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "ellipse",
+                                      "id": "drciH",
+                                      "name": "Ponto de Status",
+                                      "fill": "#3B82F6",
+                                      "width": 5,
+                                      "height": 5
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "e4bNu",
+                                      "name": "Rótulo de Status",
+                                      "fill": "#3B82F6",
+                                      "content": "Disponível",
+                                      "fontFamily": "$font-ui",
+                                      "fontSize": 11.5,
+                                      "fontWeight": "500"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "variables": {

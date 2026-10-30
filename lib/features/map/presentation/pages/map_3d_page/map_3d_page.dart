@@ -6,12 +6,13 @@ import 'package:file_selector/file_selector.dart';
 
 import 'dart:async' show unawaited;
 import 'dart:io' show Platform;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/scheduler.dart' show Ticker;
+import 'package:flutter/services.dart' show KeyDownEvent, LogicalKeyboardKey;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../../core/design_system/fogo_colors.dart';
 import '../../../../../core/design_system/fogo_spacing.dart';
@@ -23,6 +24,7 @@ import '../../../../../core/design_system/widgets/fogo_panel.dart';
 import '../../../../../core/design_system/widgets/fogo_text_field.dart';
 import '../../../../../core/theme/fogo_typography.dart';
 import '../../../../../engine/fogo_engine.dart';
+import '../../../../inventory/presentation/pages/inventory_page/inventory_page.dart';
 import '../../../../predictive_city/domain/risk_area.dart';
 import '../../../../predictive_city/providers/predictive_providers.dart';
 import '../../../data/geocoding_service.dart' show GeoSearchResult;
@@ -45,11 +47,21 @@ part 'map3d_selection_panel.dart';
 part 'map3d_predictive_panel.dart';
 part 'map3d_icon_filter.dart';
 
+/// Largura do rail de módulos (botão 30px + 2×5px de padding).
+const double _kNavRailWidth = 40;
+
+/// Espaço mínimo entre o rail de módulos e o card flutuante do inventário.
+const double _kInventoryCardGap = 60;
+
 /// Central de Operações 3D — F.O.G.O. Engine: arquivo OSM XML →
 /// entidades cartográficas → geometria → Flutter Scene → viewport
 /// interativo (MVVM: estado no [MapEngineNotifier], view só renderiza).
 class Map3dPage extends ConsumerStatefulWidget {
-  const Map3dPage({super.key});
+  const Map3dPage({super.key, this.initialInventoryOpen = false});
+
+  /// Abre o card flutuante do inventário já no carregamento (rota
+  /// '/inventory' — deep link entra no workspace com o modal aberto).
+  final bool initialInventoryOpen;
 
   @override
   ConsumerState<Map3dPage> createState() => _Map3dPageState();
@@ -75,6 +87,13 @@ class _Map3dPageState extends ConsumerState<Map3dPage> {
 
   /// Área selecionada no modo Cidade Preditiva (id da célula).
   String? _selectedRiskAreaId;
+
+  /// Inventário aberto como card flutuante (modal) sobre o mapa.
+  bool _inventoryOpen = false;
+
+  void _toggleInventory() => setState(() => _inventoryOpen = !_inventoryOpen);
+
+  void _closeInventory() => setState(() => _inventoryOpen = false);
 
   /// Projeta os bounds (graus) de cada área para o plano x/z do motor.
   List<HeatCell> _heatCellsFor(List<RiskArea> areas, FogoEngine engine) {
@@ -107,6 +126,7 @@ class _Map3dPageState extends ConsumerState<Map3dPage> {
   @override
   void initState() {
     super.initState();
+    _inventoryOpen = widget.initialInventoryOpen;
     ref.listenManual(
       mapEngineProvider.select((s) => s.engineVersion),
       (_, _) => _uploadScene(),
@@ -366,7 +386,10 @@ class _Map3dPageState extends ConsumerState<Map3dPage> {
               alignment: Alignment.centerLeft,
               child: Padding(
                 padding: const EdgeInsets.only(left: FogoSpacing.xl),
-                child: _NavRail(),
+                child: _NavRail(
+                  inventoryOpen: _inventoryOpen,
+                  onToggleInventory: _toggleInventory,
+                ),
               ),
             ), // Resultados da busca geográfica.
             Align(
@@ -452,6 +475,83 @@ class _Map3dPageState extends ConsumerState<Map3dPage> {
                       _BaseCard(onImport: _importOsmFile),
                       const SizedBox(height: FogoSpacing.md),
                       const _IconFilterBar(),
+                    ],
+                  ),
+                ),
+              ),
+            // Inventário: CARD FLUTUANTE (modal) sobre o mapa — à frente
+            // do rail de módulos e encostado na lateral esquerda
+            // (base-design.pen · "Card Flutuante" 1100×600).
+            if (_inventoryOpen)
+              Positioned.fill(
+                child: Focus(
+                  autofocus: true,
+                  onKeyEvent: (FocusNode node, KeyEvent event) {
+                    if (event is KeyDownEvent &&
+                        event.logicalKey == LogicalKeyboardKey.escape) {
+                      _closeInventory();
+                      return KeyEventResult.handled;
+                    }
+                    return KeyEventResult.ignored;
+                  },
+                  child: Stack(
+                    children: [
+                      // Overlay do modal: escurece e desfoca o mapa — o
+                      // card flutuante é o foco. Clique fora fecha.
+                      Positioned.fill(
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _closeInventory,
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(
+                              sigmaX: 12,
+                              sigmaY: 12,
+                            ),
+                            child: ColoredBox(
+                              color: FogoColors.bg.withValues(alpha: 0.72),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          // Depois do rail de módulos (esquerda), com folga.
+                          padding: const EdgeInsets.only(
+                            left:
+                                FogoSpacing.xl +
+                                _kNavRailWidth +
+                                _kInventoryCardGap,
+                          ),
+                          child: LayoutBuilder(
+                            builder: (
+                              BuildContext context,
+                              BoxConstraints constraints,
+                            ) {
+                              final double left =
+                                  FogoSpacing.xl +
+                                  _kNavRailWidth +
+                                  _kInventoryCardGap;
+                              // Tamanho do .pen (1100×600), encolhido
+                              // quando a janela é menor.
+                              final double width =
+                                  (constraints.maxWidth - left - FogoSpacing.lg)
+                                      .clamp(320.0, 1100.0)
+                                      .toDouble();
+                              final double height = (constraints.maxHeight - 32)
+                                  .clamp(320.0, 600.0)
+                                  .toDouble();
+                              return SizedBox(
+                                width: width,
+                                height: height,
+                                child: InventoryPage(
+                                  onClose: _closeInventory,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -742,8 +842,17 @@ class _LegendRow extends StatelessWidget {
 /// vertical de botões quadrados 30×30 só-ícone (símbolos, sem rótulo) —
 /// Siren = Operações, Boxes = Inventário, Brain Circuit = Cidade
 /// Preditiva. Container #01010a raio 12, padding 5, gap 4.
+///
+/// O botão de Inventário não navega: abre/fecha o CARD FLUTUANTE do
+/// inventário sobre o mapa.
 class _NavRail extends ConsumerWidget {
-  const _NavRail();
+  const _NavRail({
+    required this.inventoryOpen,
+    required this.onToggleInventory,
+  });
+
+  final bool inventoryOpen;
+  final VoidCallback onToggleInventory;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -757,30 +866,43 @@ class _NavRail extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (final (i, item) in const [
-            (LucideIcons.siren, '/', true),
-            (LucideIcons.boxes, '/inventory', false),
-            (LucideIcons.brain_circuit, null, false),
-          ].indexed) ...[
-            if (i > 0) const SizedBox(height: FogoSpacing.xs),
-            FogoIconButton(
-              icon: item.$1,
-              onTap: item.$2 == null
-                  ? () {
-                      // Cidade Preditiva: alterna o MODO de visão do mapa
-                      // (ícones ↔ heatmap) — não navega. Recarrega as
-                      // áreas ao entrar (score é calculado sob demanda).
-                      final next = !ref.read(predictiveModeProvider);
-                      ref.read(predictiveModeProvider.notifier).set(next);
-                      if (next) ref.invalidate(riskAreasProvider);
-                    }
-                  : () => context.go(item.$2!),
-              active: item.$2 == null ? predictive : item.$3,
-              filled: false,
-              size: 30,
-              iconSize: 16,
-            ),
-          ],
+          FogoIconButton(
+            icon: LucideIcons.siren,
+            onTap: () {
+              // O mapa já está por baixo: o botão só fecha o card de
+              // inventário (sem reiniciar a câmera).
+              if (inventoryOpen) onToggleInventory();
+            },
+            active: !inventoryOpen,
+            filled: false,
+            size: 30,
+            iconSize: 16,
+          ),
+          const SizedBox(height: FogoSpacing.xs),
+          FogoIconButton(
+            icon: LucideIcons.boxes,
+            onTap: onToggleInventory,
+            active: inventoryOpen,
+            filled: false,
+            size: 30,
+            iconSize: 16,
+          ),
+          const SizedBox(height: FogoSpacing.xs),
+          FogoIconButton(
+            icon: LucideIcons.brain_circuit,
+            onTap: () {
+              // Cidade Preditiva: alterna o MODO de visão do mapa
+              // (ícones ↔ heatmap) — não navega. Recarrega as
+              // áreas ao entrar (score é calculado sob demanda).
+              final next = !ref.read(predictiveModeProvider);
+              ref.read(predictiveModeProvider.notifier).set(next);
+              if (next) ref.invalidate(riskAreasProvider);
+            },
+            active: predictive,
+            filled: false,
+            size: 30,
+            iconSize: 16,
+          ),
         ],
       ),
     );

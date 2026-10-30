@@ -25,22 +25,26 @@ overlay exibindo **todas** as informações do equipamento.
 
 1. **Card compacto** (`equipment_row.dart`, 360px, ~48px): tile de ícone 32px
    com tint do estado; linha 1 = nome (`subtitle`, elide); linha 2 =
-   `categoria · id` (`caption`); `FogoChip` de estado à direita. Hover =
-   `surfaceHover` + `borderStrong`; `Semantics(button: true)`.
+   `categoria · id` (`caption`); `FogoChip` de estado à direita. Fundo
+   `bg-surface` (`surfaceRaised`), **sem borda**; hover = `surfaceHover`;
+   `Semantics(button: true)`.
    Coordenadas, última leitura, via e telemetria saem do card.
-2. **Clique abre o modal.** O card não navega mais. O `Overlay` do Navigator
+2. **Fundo da tela = `bg-canvas`** (`FogoColors.bg`). A lista NÃO usa
+   `FogoPanel`: o box que agrupa os cards é transparente (sem vidro, sem
+   sombra) — o canvas é o fundo, os cards `bg-surface` são as superfícies.
+3. **Clique abre o modal.** O card não navega mais. O `Overlay` do Navigator
    recebe um `OverlayEntry` com barrier `bg` 72% (clique fora fecha), fade de
    entrada de 120ms (`TweenAnimationBuilder`), ESC fecha (`Focus` +
    `onKeyEvent`).
-3. **Conteúdo do modal** (`equipment_details_modal.dart`, `part` da page),
+4. **Conteúdo do modal** (`equipment_details_modal.dart`, `part` da page),
    `FogoPanel(modal: true)` com 520px de largura máxima: cabeçalho (tile 40 +
    nome + id mono + X), chips de estado e categoria, grade de 2 colunas
    (Categoria | Estado · Localização | Via associada · Última atualização),
-   telemetria como pares chave/valor (vazio → "Sem telemetria disponível") e
-   ações "Ver no mapa" (primary) + "Fechar" (ghost).
-4. **"Ver no mapa"** fecha o modal e faz o que o clique fazia antes:
+   telemetria como pares chave/valor em 2 colunas (vazio → "Sem telemetria
+   disponível") e ações "Ver no mapa" (primary) + "Fechar" (ghost).
+5. **"Ver no mapa"** fecha o modal e faz o que o clique fazia antes:
    `selectEquipment(id)` + `context.go('/')`.
-5. **Dados**: só o domínio atual. A via aparece como `roadId` cru (sem
+6. **Dados**: só o domínio atual. A via aparece como `roadId` cru (sem
    acoplamento com `mapEngineProvider`).
 
 ## Accepted tradeoffs

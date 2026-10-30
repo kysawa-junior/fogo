@@ -11,7 +11,8 @@ void main(List<String> args) {
   final sw = Stopwatch()..start();
   final engine = FogoEngine.build(
     bytes,
-    onProgress: (phase, count) => print('${sw.elapsed}: $phase ($count)'),
+    onProgress: (phase, count, fraction) =>
+        print('${sw.elapsed}: $phase ($count) ${(fraction * 100).toStringAsFixed(1)}%'),
   )!;
   print('${sw.elapsed}: TOTAL');
   print('buildings=${engine.model.buildings.length}');

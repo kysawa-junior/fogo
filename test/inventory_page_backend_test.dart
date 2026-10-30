@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fogo/features/inventory/data/fogo_api_client.dart';
@@ -86,5 +87,37 @@ void main() {
     expect(find.text('Radar Avenida Sul'), findsOneWidget);
     expect(find.text('Viaturas'), findsNothing);
     expect(find.text('1 de 1 equipamentos · 0 de 0 viaturas'), findsOneWidget);
+  });
+
+  testWidgets('voltar fecha o card flutuante (callback do hospedeiro)', (
+    tester,
+  ) async {
+    bool closed = false;
+    final override = fogoApiClientProvider.overrideWith(
+      (ref) => FogoApiClient(
+        baseUri: Uri.parse('http://test.local'),
+        client: MockClient((request) async => http.Response('[]', 200)),
+      ),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [override],
+        child: MaterialApp(
+          home: Center(
+            child: SizedBox(
+              width: 1100,
+              height: 600,
+              child: InventoryPage(onClose: () => closed = true),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Inventário Inteligente'), findsOneWidget);
+    await tester.tap(find.byIcon(LucideIcons.x));
+    await tester.pumpAndSettle();
+    expect(closed, isTrue);
   });
 }
