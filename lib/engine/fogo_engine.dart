@@ -15,6 +15,7 @@ import 'domain/road_network.dart';
 import 'domain/road_type.dart' show RoadType;
 import 'geometry/polygon_triangulator.dart';
 import 'geometry/mesh_data.dart';
+import 'load_progress.dart';
 import 'mesh/building_mesh_builder.dart';
 import 'mesh/amenity_mesh_builder.dart';
 import 'mesh/box_builder.dart';
@@ -42,6 +43,7 @@ export 'geo/coordinate_projector.dart'
     show CoordinateProjector, WorldBounds, WorldCoordinate, Vector3, Aabb3;
 export 'geo/geo_bounds.dart' show GeoBounds;
 export 'geo/geo_coordinate.dart' show GeoCoordinate, GeoPolyline, GeoPolygon;
+export 'load_progress.dart' show LoadProgressCallback;
 export 'region/region_catalog.dart' show RegionCatalog;
 export 'osm/osm_elements.dart' show OsmImportIssue;
 export 'scene/camera_controller.dart' show OrbitCamera;
@@ -114,28 +116,29 @@ class FogoEngine {
   /// chamador decide como reportar).
   static FogoEngine? build(
     Uint8List osmBytes, {
-    void Function(String phase, int count)? onProgress,
+    LoadProgressCallback? onProgress,
     OsmFeatureMapper? mapper,
     Fogo3DStyle style = Fogo3DStyle.standard,
   }) {
+    final LoadProgress progress = LoadProgress(onProgress);
     final store = OsmDataStore();
-    OsmXmlReader.read(osmBytes, store, onProgress: onProgress);
+    OsmXmlReader.read(osmBytes, store, progress: progress);
     if (store.nodeCount == 0) return null;
 
-    onProgress?.call('Interpretando elementos', store.wayCount);
+    progress.begin('Interpretando elementos', count: store.wayCount);
     final m = mapper ?? OsmFeatureMapper();
-    final model = m.map(store);
+    final model = m.map(store, progress: progress);
 
     // Deduplicação SEGURA (mesmos nós OSM + mesmo perfil vertical +
     // mesma semântica). Ambíguas são preservadas e registradas.
-    onProgress?.call('Deduplicando vias', model.roads.length);
+    progress.begin('Deduplicando vias', count: model.roads.length);
     final dedup = RoadDeduplicator.dedupe(model.roads, store);
     model.roads
       ..clear()
       ..addAll(dedup.roads);
     model.indexAll();
 
-    onProgress?.call('Construindo topologia', model.roads.length);
+    progress.begin('Construindo topologia', count: model.roads.length);
     final network = MapTopologyBuilder().build(model, store);
 
     // Bounds geográfico real do carregado (para projeção e enquadramento).
@@ -157,13 +160,27 @@ class FogoEngine {
 
     // Viaturas simuladas: grafo dirigível da rede (oneway do OSM
     // respeitado) — circulam nas 3 cidades da região.
-    onProgress?.call('Simulando viaturas', network.segments.length);
+    progress.begin('Simulando viaturas', count: network.segments.length);
     final vehicles = VehicleFleet(
       edges: _vehicleEdges(network, model, projector),
       vehicleCount: 10,
     );
 
-    onProgress?.call('Gerando geometria 3D', model.roads.length);
+    progress.begin('Gerando geometria 3D', count: model.roads.length);
+    // Progresso real da fase: itens de geometria processados / total.
+    final int geomTotal =
+        model.roads.length +
+        model.buildings.length +
+        model.landAreas.length +
+        model.crossings.length +
+        model.signals.length +
+        model.markings.length +
+        model.waterways.length +
+        model.trees.length +
+        model.furniture.length;
+    var geomDone = 0;
+    void geomStep() =>
+        progress.step(geomDone, geomTotal == 0 ? 1 : geomDone / geomTotal);
     final objects = <MapSceneObject>[];
     final roadAnnotationGeometry = <RoadAnnotationGeometry>[];
     // Primitivas 2D (modo mapa): coletadas NOS MESMOS loops — mesmos
@@ -173,7 +190,10 @@ class FogoEngine {
 
     // Ruas: superfície por polilinha, elevação por camada vertical.
     var triangles = 0;
-    for (final road in model.roads) {
+    final int roadTotal = model.roads.length;
+    for (var i = 0; i < roadTotal; i++) {
+      final road = model.roads[i];
+      progress.step(i, geomTotal == 0 ? 1 : i / geomTotal);
       final pts = [for (final p in road.points) projector.project(p)];
       final width = road.properties.widthMeters?.value ?? 5;
       final roadSurfaceY = _roadLift(
@@ -214,6 +234,8 @@ class FogoEngine {
         ),
       );
     }
+    geomDone += model.roads.length;
+    geomStep();
 
     // Edifícios extrudados.
     final flatByBuilding = <String, MeshData>{};
@@ -253,6 +275,8 @@ class FogoEngine {
         ),
       );
     }
+    geomDone += model.buildings.length;
+    geomStep();
 
     // ÁGUA: placa 3D (slab) — topo no offset de água, base no plano do
     // parque: espessura REAL elimina qualquer conflito com o parque.
@@ -373,6 +397,8 @@ class FogoEngine {
         ),
       );
     }
+    geomDone += model.landAreas.length;
+    geomStep();
 
     // Travessias e semáforos nas posições reais.
     for (final crossing in model.crossings) {
@@ -414,6 +440,9 @@ class FogoEngine {
         ),
       );
     }
+    geomDone += model.crossings.length;
+    geomStep();
+
     for (final signal in model.signals) {
       final connectedRoads = _connectedRoads(signal.connectedWayIds, model);
       final road = _signalRoad(connectedRoads);
@@ -446,6 +475,8 @@ class FogoEngine {
         ),
       );
     }
+    geomDone += model.signals.length;
+    geomStep();
 
     // Marcações de pavimento (ETAPA 05): barra de retenção ou
     // plataforma redutora, na posição real do nó, na cor da via.
@@ -494,6 +525,8 @@ class FogoEngine {
         ),
       );
     }
+    geomDone += model.markings.length;
+    geomStep();
 
     // ETAPA 06: água linear (rios/córregos) — faixa da largura real,
     // cor de água da paleta. Hierarquia: ACIMA de parques (rio dentro
@@ -520,6 +553,8 @@ class FogoEngine {
         ),
       );
     }
+    geomDone += model.waterways.length;
+    geomStep();
 
     // ETAPA 06: árvores INDIVIDUAIS do OSM (natural=tree) — posição
     // real, altura determinística pelo id (dados sem height/espécie
@@ -539,6 +574,8 @@ class FogoEngine {
         ),
       );
     }
+    geomDone += model.trees.length;
+    geomStep();
 
     // ETAPA 06: mobiliário urbano com posição real (bench/shelter) —
     // modelos mínimos reutilizáveis.
@@ -575,11 +612,22 @@ class FogoEngine {
         ),
       );
     }
+    geomDone += model.furniture.length;
+    geomStep();
 
     // ETAPA 06: árvores PROCEDURAIS — determinísticas (seed fixa),
     // restritas a parques/florestas, fora de edifícios e vias. Marcadas
     // estimated=true: a UI as diferencia dos dados reais do OSM.
     final proceduralSeed = 42;
+    // Fração real da fase: áreas verdes processadas / elegíveis.
+    final int greenTotal = model.landAreas
+        .where(
+          (a) => a.kind == LandAreaKind.park || a.kind == LandAreaKind.forest,
+        )
+        .where((a) => !_isRuralNature(a))
+        .length;
+    progress.begin('Gerando vegetação', count: greenTotal);
+    var greenDone = 0;
     for (final area in model.landAreas) {
       if (area.kind != LandAreaKind.park && area.kind != LandAreaKind.forest) {
         continue;
@@ -622,14 +670,25 @@ class FogoEngine {
           ),
         );
       }
+      greenDone++;
+      progress.step(greenDone, greenTotal == 0 ? 1 : greenDone / greenTotal);
     }
 
     // Junções viárias: região de interseção sobre cada nó compartilhado,
     // agrupando apenas segmentos NO MESMO nível vertical (interseção
     // visual entre pontes/túneis e o solo nunca vira pad conjunta).
+    progress.begin('Gerando junções', count: network.junctions.length);
     var padCount = 0;
     if (style.buildJunctionPads) {
+      var junctionDone = 0;
       for (final node in network.junctions) {
+        junctionDone++;
+        progress.step(
+          junctionDone,
+          network.junctions.isEmpty
+              ? 1
+              : junctionDone / network.junctions.length,
+        );
         var segments = network.segmentsAtNode(node.id).toList();
         if (segments.length < 2) continue;
         // Calçadas/caminhos (foot-class) NUNCA formam pad conjunta com
@@ -708,7 +767,7 @@ class FogoEngine {
     }
 
     // Particionamento: tiles reais pela bounds projetada do conteúdo.
-    onProgress?.call('Particionando espacialmente', objects.length);
+    progress.begin('Particionando espacialmente', count: objects.length);
     final annotationBounds = <WorldBounds>[
       for (final annotations in roadAnnotationGeometry) ...[
         if (annotations.roadName != null) annotations.roadName!.bounds,
@@ -763,6 +822,7 @@ class FogoEngine {
     final objectBounds = List<WorldBounds?>.filled(objects.length, null);
     for (var i = 0; i < objects.length; i++) {
       final obj = objects[i];
+      progress.step(i, objects.isEmpty ? 1 : i / objects.length);
       final b = obj.mesh.computeBounds();
       if (b == null) continue;
       objectBounds[i] = b;
@@ -840,6 +900,8 @@ class FogoEngine {
       annotations: annotationBatches,
       buildingFootprints: buildingFootprints,
     );
+
+    progress.finish(objects.length);
 
     return FogoEngine._(
       store: store,

@@ -2,6 +2,7 @@
 
 #include <flutter_linux/flutter_linux.h>
 
+#include "desktop_multi_window/desktop_multi_window_plugin.h"
 #include "flutter/generated_plugin_registrant.h"
 
 struct _MyApplication {
@@ -58,12 +59,51 @@ static void my_application_activate(GApplication* application) {
   gtk_widget_show(GTK_WIDGET(view));
   gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(view));
 
-  // Mapeada no nascimento pelo RUNNER (window_manager.show do Dart não
-  // mapeia nesta base — o plugin só enxerga a janela depois de mapeada):
-  // o primeiro frame nasce com a janela já mapeada, no tamanho final.
-  gtk_widget_show(GTK_WIDGET(window));
-
+  // Plugins ANTES do realize: o engine nasce no realize e o main() do
+  // Dart já precisa de window_manager/desktop_multi_window registrados.
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
+
+  // Janelas criadas pelo desktop_multi_window (a Splash 800x500) nascem
+  // SEM plugins do app: este callback registra window_manager (e o
+  // resto) em cada engine novo — sem ele a Splash não consegue se
+  // dimensionar/decorar.
+  desktop_multi_window_plugin_set_window_created_callback(
+      [](FlPluginRegistry* registry) {
+        fl_register_plugins(registry);
+
+        // Splash 800x500 SEM borda: o plugin cria toda janela nova com
+        // 1280x720 e (no GNOME) com header bar. O GTK aplica o default
+        // size no primeiro mapeamento (need_default_size), por isso o
+        // resize via window_manager é sobrescrito — o tamanho precisa
+        // ser corrigido AQUI, antes do mapeamento.
+        g_autoptr(FlPluginRegistrar) registrar =
+            fl_plugin_registry_get_registrar_for_plugin(registry,
+                                                        "WindowManagerPlugin");
+        if (registrar == nullptr) return;
+        FlView* splash_view = fl_plugin_registrar_get_view(registrar);
+        if (splash_view == nullptr) return;
+        GtkWidget* toplevel = gtk_widget_get_toplevel(GTK_WIDGET(splash_view));
+        if (!GTK_IS_WINDOW(toplevel)) return;
+        GtkWindow* splash_window = GTK_WINDOW(toplevel);
+        // Header bar do plugin: ESCONDIDO, não removido —
+        // gtk_window_set_titlebar() em janela já realizada unrealiza a
+        // janela (GTK3) e derruba o GdkWindow: o window_manager depois
+        // chama gdk_window_set_geometry_hints(NULL) → segfault.
+        GtkWidget* titlebar = gtk_window_get_titlebar(splash_window);
+        if (titlebar != nullptr) gtk_widget_set_visible(titlebar, FALSE);
+        gtk_window_set_decorated(splash_window, FALSE);
+        gtk_window_set_default_size(splash_window, 800, 500);
+      });
+
+  // JANELA DEFINITIVA NASCE OCULTA (startup multi-window): a Splash
+  // 800x500 é exibida primeiro e esta janela só é mapeada pelo Dart
+  // (windowManager.show) quando o mapa já está carregado. O tamanho
+  // final é definido ANTES do realize — a superfície nasce no tamanho
+  // definitivo (resize pós-criação wedgea o pipeline Impeller).
+  // O realize explícito da view é o que inicia o engine (fl_engine_start
+  // no realize do renderer) — realize da janela sozinho não basta.
+  gtk_widget_realize(GTK_WIDGET(window));
+  gtk_widget_realize(GTK_WIDGET(view));
 
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }

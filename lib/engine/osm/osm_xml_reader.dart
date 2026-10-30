@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:xml/xml_events.dart';
 
+import '../load_progress.dart';
 import 'osm_elements.dart';
 
 /// Leitor de arquivos OSM XML (`.osm`, `.osm.gz`).
@@ -20,13 +21,17 @@ class OsmXmlReader {
   static void read(
     Uint8List bytes,
     OsmDataStore store, {
-    void Function(String phase, int count)? onProgress,
+    LoadProgress? progress,
   }) {
     final Uint8List decoded =
         bytes.length >= 2 && bytes[0] == 0x1F && bytes[1] == 0x8B
         ? Uint8List.fromList(gzip.decode(bytes))
         : bytes;
     final source = utf8.decode(decoded, allowMalformed: true);
+
+    progress?.begin('Interpretando OSM');
+    // Denominador real do parse: total de elementos do XML.
+    final int total = _countElements(source);
 
     var count = 0;
     OsmNode? openNode;
@@ -40,6 +45,7 @@ class OsmXmlReader {
           case 'node':
             if (event.isSelfClosing) {
               _commitNode(store, attrs);
+              count++;
             } else {
               openNode = _pendingNode(store, attrs);
             }
@@ -145,11 +151,25 @@ class OsmXmlReader {
             break;
         }
         if (count % 5000 == 0 && count > 0) {
-          onProgress?.call('Interpretando OSM', count);
+          progress?.step(count, total == 0 ? 1 : count / total);
         }
       }
     }
-    onProgress?.call('OSM lido', count);
+    progress?.step(count, 1);
+  }
+
+  /// Total de elementos do XML (nodes + ways + relations) — denominador
+  /// real do progresso do parse.
+  static int _countElements(String source) {
+    int total = 0;
+    for (final String tag in const <String>['<node', '<way', '<relation']) {
+      int index = source.indexOf(tag);
+      while (index >= 0) {
+        total++;
+        index = source.indexOf(tag, index + tag.length);
+      }
+    }
+    return total;
   }
 
   /// Nós recebem lat/lon no start event; com tags ficam abertos até o end.

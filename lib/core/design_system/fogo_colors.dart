@@ -40,4 +40,17 @@ abstract final class FogoColors {
   // Navegação flutuante (header e navegador de cidades — base-design.pen)
   static const Color overlayFaint = Color(0x08FFFFFF);
   static const Color borderSubtle = Color(0x14FFFFFF);
+
+  // Splash (base-design.pen · frame "Splash / Carregamento")
+  /// Trilho do progresso (2px) da Splash.
+  static const Color splashTrack = Color(0x1FFFFFFF);
+
+  /// Cabeça da barra de progresso da Splash.
+  static const Color splashProgressHead = Color(0xFFB3E9FF);
+
+  /// Papel do mock cartográfico (metade clara da Splash).
+  static const Color splashMapPaper = Color(0xFFD9D9D9);
+
+  /// Tinta secundária do mock cartográfico (coordenadas).
+  static const Color splashMapInk = Color(0xFF5E7B94);
 }

@@ -19,7 +19,7 @@ class OsmLoadController {
   /// (cancelado ou sem conteúdo) ou erro.
   Future<FogoEngine?> load(
     Uint8List bytes, {
-    void Function(String phase, int count)? onProgress,
+    void Function(String phase, int count, double fraction)? onProgress,
   }) {
     if (_running) {
       throw StateError('Importação já em andamento.');
@@ -40,8 +40,12 @@ class OsmLoadController {
     }
 
     progressPort.listen((message) {
-      if (message is List && message.length == 3 && message[0] == 'progress') {
-        onProgress?.call(message[1] as String, message[2] as int);
+      if (message is List && message.length == 4 && message[0] == 'progress') {
+        onProgress?.call(
+          message[1] as String,
+          message[2] as int,
+          (message[3] as num).toDouble(),
+        );
       } else if (message is List &&
           message.length == 2 &&
           message[0] == 'result') {
@@ -103,7 +107,8 @@ class OsmLoadController {
     try {
       final engine = FogoEngine.build(
         bytes,
-        onProgress: (phase, count) => sendPort.send(['progress', phase, count]),
+        onProgress: (phase, count, fraction) =>
+            sendPort.send(['progress', phase, count, fraction]),
       );
       if (engine == null) {
         sendPort.send([

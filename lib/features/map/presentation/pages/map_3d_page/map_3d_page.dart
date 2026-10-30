@@ -134,16 +134,36 @@ class _Map3dPageState extends ConsumerState<Map3dPage> {
     // Carrega automaticamente a base regional única (3 cidades +
     // corredor). O define FOGO_AUTO_CITY (smoke OSM de CI) não é mais
     // necessário: a base padrão é sempre a região inteira.
+    //
+    // Startup multi-window (desktop): a carga JÁ foi feita pelo
+    // BootCoordinator (a janela nasce oculta e não tem frames) — aqui
+    // só falta enviar a cena ao renderer e enquadrar a câmera.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
+      if (!mounted) return;
+      final state = ref.read(mapEngineProvider);
+      if (state.phase is MapReady) {
+        // O boot pode ter carregado o mapa ANTES do primeiro frame da
+        // página: nesse caso o listener de engineVersion já enviou a
+        // cena — não envia de novo (cada upload recria os nodes).
+        if (state.engineVersion != _uploadedEngineVersion) {
+          _uploadScene();
+          _fitCamera();
+        }
+        return;
+      }
+      if (state.phase is MapIdle) {
         ref.read(mapEngineProvider.notifier).loadRegion();
       }
     });
   }
 
+  /// Versão da cena já enviada ao renderer (-1 = nenhuma).
+  int _uploadedEngineVersion = -1;
+
   void _uploadScene() {
     final engine = ref.read(mapEngineProvider.notifier).engine;
     if (engine == null) return;
+    _uploadedEngineVersion = ref.read(mapEngineProvider).engineVersion;
     // Rótulos vêm do MODELO (não da cena 3D): prontos antes do upload —
     // o modo 2D exibido imediatamente já os tem. Ícones 2D idem.
     _labelCandidates = extractLabelCandidates(engine);

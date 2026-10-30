@@ -48,6 +48,20 @@ flutter:
   # dependência (flutter_lucide) a declara; não torna a UI Material.
   uses-material-design: true
 
+  # Tipografia do base-design.pen (frame "Splash / Carregamento"):
+  # Inter para UI, JetBrains Mono para dados/rótulos técnicos.
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono-Regular.ttf
+          weight: 400
+
   # Base cartográfica real: extrato OSM XML único da região — as três
   # cidades do catálogo + corredor (tool/map_data/extract_osm_xml.py).
   assets:

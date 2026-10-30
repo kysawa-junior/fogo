@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:fogo/engine/domain/land_area.dart' show LandAreaKind;
 import 'package:fogo/engine/domain/road_type.dart' show RoadType;
+import 'package:fogo/engine/load_progress.dart';
 import 'package:fogo/engine/osm/map_topology_builder.dart';
 import 'package:fogo/engine/osm/osm_elements.dart';
 import 'package:fogo/engine/osm/osm_feature_mapper.dart'
@@ -64,15 +65,24 @@ void main() {
       expect(gzipped.wayById(10)!.tags['name'], 'Rua Reta');
     });
 
-    test('reporta progresso', () {
+    test('reporta progresso com fração real e crescente', () {
       final store = OsmDataStore();
       final phases = <String>[];
+      final fractions = <double>[];
       OsmXmlReader.read(
         fixtureBytes(),
         store,
-        onProgress: (phase, count) => phases.add(phase),
+        progress: LoadProgress((phase, count, fraction) {
+          phases.add(phase);
+          fractions.add(fraction);
+        }),
       );
-      expect(phases, contains('OSM lido'));
+      expect(phases, contains('Interpretando OSM'));
+      expect(fractions.last, greaterThan(0));
+      expect(fractions.last, lessThanOrEqualTo(1));
+      for (var i = 1; i < fractions.length; i++) {
+        expect(fractions[i], greaterThanOrEqualTo(fractions[i - 1]));
+      }
     });
 
     test('XML malformado lança (arquivo, não elemento)', () {

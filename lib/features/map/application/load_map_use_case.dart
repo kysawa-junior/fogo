@@ -20,7 +20,7 @@ class LoadMapUseCase {
   /// Importa um asset empacotado (`.osm`/`.osm.gz` do catálogo regional).
   Future<FogoEngine?> loadAsset(
     String assetPath, {
-    void Function(String phase, int count)? onProgress,
+    void Function(String phase, int count, double fraction)? onProgress,
   }) async {
     final bytes = await rootBundle.load(assetPath);
     return loadBytes(
@@ -32,7 +32,7 @@ class LoadMapUseCase {
   /// Importa um arquivo local escolhido pelo usuário.
   Future<FogoEngine?> loadFile(
     String path, {
-    void Function(String phase, int count)? onProgress,
+    void Function(String phase, int count, double fraction)? onProgress,
   }) async {
     final bytes = await File(path).readAsBytes();
     return loadBytes(bytes, onProgress: onProgress);
@@ -40,7 +40,7 @@ class LoadMapUseCase {
 
   Future<FogoEngine?> loadBytes(
     Uint8List bytes, {
-    void Function(String phase, int count)? onProgress,
+    void Function(String phase, int count, double fraction)? onProgress,
   }) {
     return _controller.load(bytes, onProgress: onProgress);
   }

@@ -1,6 +1,7 @@
 import '../domain/building.dart';
 import '../domain/land_area.dart';
 import '../domain/map_feature.dart';
+import '../load_progress.dart';
 import '../domain/pedestrian_crossing.dart';
 import '../domain/poi.dart';
 import '../domain/road_marking.dart';
@@ -91,7 +92,7 @@ class OsmFeatureMapper {
 
   /// Mapeia todo o store. Elementos inválidos geram issues no store,
   /// nunca exceções.
-  MapModel map(OsmDataStore store) {
+  MapModel map(OsmDataStore store, {LoadProgress? progress}) {
     final roads = <Road>[];
     final buildings = <Building>[];
     final areas = <LandArea>[];
@@ -103,7 +104,13 @@ class OsmFeatureMapper {
     final waterways = <Waterway>[];
 
     // Nodes: travessias, semáforos e marcações (ETAPA 05).
+    final int total = store.nodeCount + store.wayCount;
+    var done = 0;
     for (final node in store.nodes) {
+      if (done % 5000 == 0) {
+        progress?.step(done, total == 0 ? 1 : done / total);
+      }
+      done++;
       final highway = node.tags['highway'];
       final position = GeoCoordinate(
         node.lat,
@@ -180,6 +187,10 @@ class OsmFeatureMapper {
     }
 
     for (final way in store.ways) {
+      if (done % 5000 == 0) {
+        progress?.step(done, total == 0 ? 1 : done / total);
+      }
+      done++;
       final geometry = _wayGeometry(store, way);
       final points = geometry.points;
       final nodeRefs = geometry.nodeRefs;
@@ -388,6 +399,7 @@ class OsmFeatureMapper {
       furniture: furniture,
     );
     model.indexAll();
+    progress?.step(total, 1);
     return model;
   }
 

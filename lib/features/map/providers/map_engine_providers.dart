@@ -19,10 +19,13 @@ class MapIdle extends MapLoadPhase {
 }
 
 class MapLoading extends MapLoadPhase {
-  const MapLoading(this.label, this.count);
+  const MapLoading(this.label, this.count, [this.progress = 0]);
 
   final String label;
   final int count;
+
+  /// Fração real da carga (0..1) — barra determinada da Splash.
+  final double progress;
 }
 
 class MapReady extends MapLoadPhase {
@@ -168,7 +171,9 @@ class MapEngineNotifier extends Notifier<MapEngineState> {
   );
 
   Future<void> _load(
-    Future<FogoEngine?> Function({void Function(String, int)? onProgress})
+    Future<FogoEngine?> Function({
+      void Function(String, int, double)? onProgress,
+    })
     run, {
     required String activeCityId,
     required String label,
@@ -184,10 +189,10 @@ class MapEngineNotifier extends Notifier<MapEngineState> {
     );
     try {
       final result = await run(
-        onProgress: (phase, count) {
+        onProgress: (phase, count, fraction) {
           // Progresso do pipeline no isolate (fases de parse).
           if (state.phase is MapLoading) {
-            state = state.copyWith(phase: MapLoading(label, count));
+            state = state.copyWith(phase: MapLoading(label, count, fraction));
           }
         },
       );
